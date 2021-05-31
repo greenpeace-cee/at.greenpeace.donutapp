@@ -46,6 +46,14 @@ function _civicrm_api3_donut_petition_import_spec(&$spec) {
     'api.required' => 0,
     'api.default'  => 1,
   ];
+
+  $spec['processor'] = [
+      'name'         => 'processor',
+      'title'        => 'Processor Implementation',
+      'type'         => CRM_Utils_TYPE::T_STRING,
+      'api.required' => 0,
+      'api.default'  => 'Greenpeace',
+  ];
 }
 
 /**
@@ -59,7 +67,17 @@ function _civicrm_api3_donut_petition_import_spec(&$spec) {
  */
 function civicrm_api3_donut_petition_import($params) {
   $params['limit'] = abs($params['limit']);
-  $processor = new CRM_Donutapp_Processor_Greenpeace_Petition($params);
+  $processor_class_name = "CRM_Donutapp_Processor_{$params['processor']}_Petition";
+  if (!class_exists($processor_class_name)) {
+    return civicrm_api3_create_error(
+        "Processor '{$params['processor']}' incomplete, class {$processor_class_name} not found."
+    );
+  }
+
+  // run processing
+  /** @var CRM_Donutapp_Processor_Base $processor */
+  $processor = new $processor_class_name($params);
+  $processor->verifySetup();
   $processor->process();
   return civicrm_api3_create_success();
 }

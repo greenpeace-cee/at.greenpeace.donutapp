@@ -7,6 +7,11 @@ abstract class CRM_Donutapp_API_Entity {
     $this->data = $data;
   }
 
+  public function getData()
+  {
+    return $this->data;
+  }
+
   /**
    * Return the requested attribute of the API response
    *

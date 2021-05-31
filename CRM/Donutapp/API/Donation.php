@@ -36,6 +36,7 @@ class CRM_Donutapp_API_Donation extends CRM_Donutapp_API_Entity {
    *               key1;key2:value3;key3;key4:value4
    *               valueless keys are interpreted as booleans (i.e. set to TRUE)
    *
+   * @todo are we sure about the format? in my instance it was simply 'value1;value2'
    */
   private function parseSpecial($value) {
     foreach (explode(';', $value) as $field) {

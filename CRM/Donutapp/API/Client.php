@@ -4,8 +4,8 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Request;
 
 class CRM_Donutapp_API_Client {
-  const API_ENDPOINT = 'https://donutapp.io/api/v1/';
-  const OAUTH2_ENDPOINT = 'https://donutapp.io/o/token/?grant_type=client_credentials';
+  const API_ENDPOINT = 'https://app.formunauts.com/api/v2/ ';
+  const OAUTH2_ENDPOINT = 'https://app.formunauts.com/o/token/';
 
   static $apiEndpoint = self::API_ENDPOINT;
   static $oauth2Endpoint = self::OAUTH2_ENDPOINT;
@@ -127,7 +127,8 @@ class CRM_Donutapp_API_Client {
       $response = self::$oauth2Client->post(
         '',
         [
-          'auth' => [self::$clientId, self::$clientSecret, 'Basic']
+          'auth' => [self::$clientId, self::$clientSecret, 'Basic'],
+          'form_params' => ['grant_type' => 'client_credentials'],
         ]
       );
       $authResponse = json_decode($response->getBody());

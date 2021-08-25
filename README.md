@@ -44,8 +44,15 @@ To import petitions, use the `DonutPetition.import` API call.
 
 To import donations, use the `DonutDonation.import` API call.
 
-Campaigns used for created entities can be specified either via the `import` API
-or an `external_campaign_id` field within the DonutApp API response.
+Campaigns used when creating entities can be specified through various means
+and are used in this precedence:
+
+* Via an optional/custom `external_campaign_id` field within the DonutApp
+  API response
+* Via the `donutapp_campaign_map` setting, which maps DonutApp campaigns
+  to CiviCRM campaigns. The mapping is stored as an array in the form of
+  `['{donutapp_campaign_id}' => '{civicrm_campaign_id}']`.
+* Via the `campaign_id` parameter passed to the `import` API
 
 ## Known Issues
 

@@ -21,6 +21,12 @@ abstract class CRM_Donutapp_Processor_Greenpeace_BaseTest extends \PHPUnit_Frame
 
   public function setUp() {
     parent::setUp();
+
+    // required to add e.g. custom fields for "Petition" activity type as
+    // CRM_Core_PseudoConstant::activityType() only returns activity types
+    // associated with enabled components
+    CRM_Core_BAO_ConfigSetting::enableComponent('CiviCampaign');
+
     // test dates against UTC
     date_default_timezone_set('UTC');
 

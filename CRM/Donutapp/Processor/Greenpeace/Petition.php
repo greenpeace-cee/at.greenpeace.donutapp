@@ -94,11 +94,21 @@ class CRM_Donutapp_Processor_Greenpeace_Petition extends CRM_Donutapp_Processor_
       $signature_date = new DateTime($petition->createtime);
       $signature_date->setTimezone(new DateTimeZone(date_default_timezone_get()));
 
-      $phone = $petition->donor_mobile;
+      $phone = trim($petition->donor_mobile);
       if (empty($phone)) {
-        $phone = $petition->donor_phone;
+        $phone = trim($petition->donor_phone);
       }
-      $email = $petition->donor_email;
+      $email = trim($petition->donor_email);
+
+      if (empty($phone) && empty($email)) {
+        // discard petition
+        Civi::log('donutapp')->info("Discarding petition FO-{$petition->uid}");
+        // Should we confirm retrieval?
+        if ($this->params['confirm']) {
+          $petition->confirm();
+        }
+        return;
+      }
 
       $params = [
         'prefix'              => $prefix,

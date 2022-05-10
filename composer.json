@@ -1,6 +1,12 @@
 {
   "require": {
     "guzzlehttp/guzzle": "~6.0",
-    "tdely/luhn": "^1.0"
+    "tdely/luhn": "^1.0",
+    "php": "7.2"
+  },
+  "config": {
+    "platform": {
+      "php": "7.2"
+    }
   }
 }

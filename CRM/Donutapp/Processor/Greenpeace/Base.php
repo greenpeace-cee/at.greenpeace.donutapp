@@ -260,4 +260,29 @@ abstract class CRM_Donutapp_Processor_Greenpeace_Base extends CRM_Donutapp_Proce
     ]);
   }
 
+  /**
+   * Determine whether $entity is on hold
+   *
+   * This inspects the "status" property or the deprecated on_hold property if
+   * it is set
+   *
+   * @param \CRM_Donutapp_API_Entity $entity
+   *
+   * @return bool
+   */
+  protected function isOnHold(CRM_Donutapp_API_Entity $entity) {
+    if (is_null($entity->on_hold)) {
+      // if status is not any of the listed values, it's on hold
+      return !in_array($entity->status, [
+        'none',
+        'approved',
+        'conditionally-approved',
+        'live',
+      ]);
+    }
+    else {
+      return (bool) $entity->on_hold;
+    }
+  }
+
 }

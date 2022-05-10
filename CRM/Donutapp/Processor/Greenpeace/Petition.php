@@ -23,7 +23,7 @@ class CRM_Donutapp_Processor_Greenpeace_Petition extends CRM_Donutapp_Processor_
     $created = new DateTime($petition->createtime);
     // Welcome email was created in the last hour
     $recent = new DateTime() < $created->modify('-1 hour');
-    return $petition->on_hold || ($pending && $recent);
+    return $this->isOnHold($petition) || ($pending && $recent);
   }
 
   /**

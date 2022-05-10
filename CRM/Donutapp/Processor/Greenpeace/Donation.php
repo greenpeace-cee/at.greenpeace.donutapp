@@ -30,7 +30,7 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
     $created->setTimezone(new DateTimeZone(date_default_timezone_get()));
     // Welcome email was created in the last hour
     $recent = new DateTime() < $created->modify('-1 hour');
-    return $donation->on_hold || ($pending && $recent);
+    return $this->isOnHold($donation) || ($pending && $recent);
   }
 
   /**

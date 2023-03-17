@@ -329,7 +329,7 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
     $shirt_type = str_replace('T-Shirt Modell:', '', $shirt_type ?? '');
     $shirt_size = str_replace('T-Shirt Größe:', '', $shirt_size ?? '');
 
-    if (!empty($order_type)) {
+    if (empty($order_type)) {
       $order_type_map = Civi::settings()->get('donutapp_order_type_map');
       $order_type = $order_type_map[$membership_type] ?? $order_type_map['default'];
     }

@@ -54,6 +54,13 @@ and are used in this precedence:
   `['{donutapp_campaign_id}' => '{civicrm_campaign_id}']`.
 * Via the `campaign_id` parameter passed to the `import` API
 
+Webshop Order Types used when processing donations can be specified either by:
+
+* Using the `donutapp_order_type_map` setting, which maps membership type names
+  to order type names. Example: `{"Special_Membership_Type":"Special_Order_Type","default":"Fallback Order Type"}`
+* Using a `order_type` field in the Donation payload, e.g. if the order type
+  selection should be part of the donation form
+
 ## Known Issues
 
 * Only recurring donations are supported

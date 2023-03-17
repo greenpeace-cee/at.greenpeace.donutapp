@@ -319,16 +319,20 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
    * @throws \CiviCRM_API3_Exception
    */
   protected function createWebshopOrder(CRM_Donutapp_API_Donation $donation, $contactId, $membershipId) {
+    $order_type = $donation->order_type;
     $shirt_type = $donation->shirt_type;
     $shirt_size = $donation->shirt_size;
-    if (empty($shirt_type) || empty($shirt_size)) {
+    $membership_type = $donation->membership_type;
+    if ((empty($shirt_type) || empty($shirt_size)) && empty($order_type)) {
       return FALSE;
     }
-    $shirt_type = str_replace('T-Shirt Modell:', '', $shirt_type);
-    $shirt_size = str_replace('T-Shirt Größe:', '', $shirt_size);
+    $shirt_type = str_replace('T-Shirt Modell:', '', $shirt_type ?? '');
+    $shirt_size = str_replace('T-Shirt Größe:', '', $shirt_size ?? '');
 
-    // @todo: should not be hardcoded in case we want to add other incentives
-    $order_type = 'T-Shirt';
+    if (empty($order_type)) {
+      $order_type_map = Civi::settings()->get('donutapp_order_type_map');
+      $order_type = $order_type_map[$membership_type] ?? $order_type_map['default'];
+    }
 
     $params = [
       'target_id'        => $contactId,

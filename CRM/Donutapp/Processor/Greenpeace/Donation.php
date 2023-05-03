@@ -204,77 +204,80 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
     if ($donation->direct_debit_interval == '0') {
       throw new CRM_Donutapp_Processor_Exception('One-off payments are not supported');
     }
-    $iban = strtoupper(str_replace(' ', '', $donation->bank_account_iban));
-    $mandate_data = [
-      'iban'               => $iban,
-      'frequency_unit'     => 'month',
-      'contact_id'         => $contactId,
-      'financial_type_id'  => 2, // Membership Dues
-      'currency'           => 'EUR',
-      'type'               => 'RCUR',
-      'campaign_id'        => $this->getCampaign($donation),
-      'frequency_interval' => 12 / $donation->direct_debit_interval,
-    ];
 
-    // comma is decimal separator, no thousands separator
-    $annualAmount = str_replace(',', '.', $donation->donation_amount_annual);
-    $mandate_data['amount'] = number_format($annualAmount / $donation->direct_debit_interval, 2, '.', '');
-    if ($mandate_data['amount'] * $donation->direct_debit_interval != $annualAmount) {
+    // Payment frequency & amount
+    $annualAmount = (float) str_replace(',', '.', $donation->donation_amount_annual);
+    $frequency = (int) $donation->direct_debit_interval;
+    $amount = $annualAmount / $frequency;
+
+    if ($amount * $frequency !== $annualAmount) {
       throw new CRM_Donutapp_Processor_Exception(
-        "Contract annual amount '{$annualAmount}' not divisible by frequency {$donation->direct_debit_interval}."
+        "Contract annual amount '$annualAmount' not divisible by frequency $frequency."
       );
     }
 
+    // Start/join date
     $now = new DateTime();
     $contract_start_date = DateTime::createFromFormat('Y-m-d', $donation->contract_start_date);
+
     if ($contract_start_date > $now) {
       throw new CRM_Donutapp_Processor_Exception(
-        "Invalid contract_start_date '{$contract_start_date->format('Y-m-d')}'. Value must not be in the future"
+        "Invalid contract_start_date '{$contract_start_date->format('Y-m-d')}'. " .
+        "Value must not be in the future"
       );
     }
+
     $signature_date = new DateTime($donation->createtime);
     $signature_date->setTimezone(new DateTimeZone(date_default_timezone_get()));
 
-    // process start date
-    $mandate_data['start_date'] = $now->format('Ymd');
-    $mandate_data['cycle_day'] = $this->getNextCycleDay($mandate_data['start_date']);
+    // Bank accounts
+    $iban = strtoupper(str_replace(' ', '', $donation->bank_account_iban));
 
-    // check parameters
-    $required_params = ['iban', 'start_date', 'cycle_day', 'contact_id', 'amount', 'campaign_id'];
-    foreach ($required_params as $required_param) {
-      if (empty($mandate_data[$required_param])) {
-        throw new CRM_Donutapp_Processor_Exception(
-          "Could not create contract: Parameter '{$required_param}' is missing."
-        );
-      }
+    if (empty($iban)) {
+      throw new CRM_Donutapp_Processor_Exception("Could not create contract: IBAN is missing.");
     }
 
-    $mandate = civicrm_api3('SepaMandate', 'createfull', $mandate_data);
-    $mandate = civicrm_api3('SepaMandate', 'getsingle', ['id' => $mandate['id']]);
+    $from_ba = CRM_Contract_BankingLogic::getOrCreateBankAccount($contactId, $iban);
+    $to_ba = CRM_Contract_BankingLogic::getCreditorBankAccount();
 
+    // Dialoger
     $dialoger = $this->findOrCreateDialoger($donation);
+
     if (is_null($dialoger)) {
       throw new CRM_Donutapp_Processor_Exception('Could not create dialoger.');
     }
 
+    // Channel
     $channel = str_replace('Kontaktart:', '', $donation->membership_channel);
-    // create membership
+
+    // Create membership
     // @TODO: use signature_date for contract_signed activity
     $contract_data = [
-      'contact_id'                                           => $contactId,
-      'membership_type_id'                                   => $this->getMembershipType($donation),
-      'join_date'                                            => $signature_date->format('Ymd'),
-      'start_date'                                           => $now->format('Ymd'),
-      'campaign_id'                                          => $this->getCampaign($donation),
-      'membership_general.membership_channel'                => $channel,
-      'membership_general.membership_contract'               => $donation->person_id,
-      'membership_general.membership_dialoger'               => $dialoger,
-      'membership_payment.membership_recurring_contribution' => $mandate['entity_id'],
-      'membership_payment.from_ba'                           => CRM_Contract_BankingLogic::getOrCreateBankAccount($contactId, $mandate_data['iban'], NULL),
-      'membership_payment.to_ba'                             => CRM_Contract_BankingLogic::getCreditorBankAccount(),
+      'contact_id'                             => $contactId,
+      'membership_type_id'                     => $this->getMembershipType($donation),
+      'join_date'                              => $signature_date->format('Ymd'),
+      'start_date'                             => $now->format('Ymd'),
+      'campaign_id'                            => $this->getCampaign($donation),
+      'membership_general.membership_channel'  => $channel,
+      'membership_general.membership_contract' => $donation->person_id,
+      'membership_general.membership_dialoger' => $dialoger,
+      'membership_payment.from_ba'             => $from_ba,
+      'membership_payment.to_ba'               => $to_ba,
+      'payment_method.adapter'                 => 'sepa_mandate',
+      'payment_method.amount'                  => $amount,
+      'payment_method.campaign_id'             => $this->getCampaign($donation),
+      'payment_method.contact_id'              => $contactId,
+      'payment_method.currency'                => 'EUR',
+      'payment_method.financial_type_id'       => 2, // Member Dues
+      'payment_method.frequency_interval'      => 12 / $frequency,
+      'payment_method.frequency_unit'          => 'month',
+      'payment_method.iban'                    => $iban,
+      'payment_method.type'                    => 'RCUR',
     ];
+
     $membership = civicrm_api3('Contract', 'create', $contract_data);
     $this->storeContractFile($donation->person_id . '.pdf', $donation->pdf_content, $membership['id']);
+
     return $membership['id'];
   }
 
@@ -412,54 +415,6 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
         $this->membershipTypes[$membership_type['name']] = $membership_type['id'];
       }
     }
-  }
-
-  /**
-   * Get the next possible cycle day
-   *
-   * @todo use SEPA function
-   *
-   * @param $start_date
-   *
-   * @return int
-   * @throws \CRM_Donutapp_Processor_Exception
-   */
-  protected function getNextCycleDay($start_date) {
-    // find the right start date
-    $creditor = CRM_Sepa_Logic_Settings::defaultCreditor();
-    $buffer_days = (int) CRM_Sepa_Logic_Settings::getSetting('pp_buffer_days') + (int) CRM_Sepa_Logic_Settings::getSetting('batching.FRST.notice', $creditor->id);
-    $now                 = time();
-    $start_date          = strtotime($start_date);
-    $earliest_start_date = strtotime("+{$buffer_days} day", $now);
-    if ($start_date < $earliest_start_date) {
-      $start_date = $earliest_start_date;
-    }
-
-    // now: find the next valid start day
-    $cycle_days = $this->getCycleDays();
-    $safety_counter = 32;
-    while (!in_array(date('j', $start_date), $cycle_days)) {
-      $start_date = strtotime('+ 1 day', $start_date);
-      $safety_counter -= 1;
-      if ($safety_counter == 0) {
-        throw new CRM_Donutapp_Processor_Exception('getNextCycleDay() reached maximum iteration limit');
-      }
-    }
-    return (int) date('j', $start_date);
-  }
-
-  /**
-   * Get the list of allowed cycle days
-   *
-   * @return array
-   * @throws \CRM_Donutapp_Processor_Exception
-   */
-  protected function getCycleDays() {
-    $creditor = CRM_Sepa_Logic_Settings::defaultCreditor();
-    if (is_null($creditor)) {
-      throw new CRM_Donutapp_Processor_Exception('No default creditor set');
-    }
-    return CRM_Sepa_Logic_Settings::getListSetting('cycledays', range(1, 28), $creditor->id);
   }
 
   /**

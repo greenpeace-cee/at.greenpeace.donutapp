@@ -226,10 +226,10 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
     }
 
     $now = new DateTime();
-    $join_date = DateTime::createFromFormat('Y-m-d', $donation->contract_start_date);
-    if ($join_date > $now) {
+    $contract_start_date = DateTime::createFromFormat('Y-m-d', $donation->contract_start_date);
+    if ($contract_start_date > $now) {
       throw new CRM_Donutapp_Processor_Exception(
-        "Invalid contract_start_date '{$donation->contract_start_date}'. Value must not be in the future"
+        "Invalid contract_start_date '{$contract_start_date->format('Y-m-d')}'. Value must not be in the future"
       );
     }
     $signature_date = new DateTime($donation->createtime);
@@ -263,7 +263,7 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
     $contract_data = [
       'contact_id'                                           => $contactId,
       'membership_type_id'                                   => $this->getMembershipType($donation),
-      'join_date'                                            => $join_date->format('Ymd'),
+      'join_date'                                            => $signature_date->format('Ymd'),
       'start_date'                                           => $now->format('Ymd'),
       'campaign_id'                                          => $this->getCampaign($donation),
       'membership_general.membership_channel'                => $channel,

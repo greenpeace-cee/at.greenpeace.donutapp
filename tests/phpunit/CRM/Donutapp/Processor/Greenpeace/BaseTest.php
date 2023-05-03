@@ -7,13 +7,14 @@ use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Response;
+use PHPUnit\Framework\TestCase;
 
 /**
  * Test petition import
  *
  * @group headless
  */
-abstract class CRM_Donutapp_Processor_Greenpeace_BaseTest extends \PHPUnit_Framework_TestCase implements HeadlessInterface, HookInterface, TransactionalInterface {
+abstract class CRM_Donutapp_Processor_Greenpeace_BaseTest extends TestCase implements HeadlessInterface, HookInterface, TransactionalInterface {
   use \Civi\Test\Api3TestTrait;
 
   protected $campaignId;

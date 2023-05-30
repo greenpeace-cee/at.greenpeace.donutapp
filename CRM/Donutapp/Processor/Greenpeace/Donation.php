@@ -390,6 +390,11 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
       );
     }
 
+    $membership_type_map = Civi::settings()->get('donutapp_membership_type_map');
+    if (!empty($membership_type_map[$membership_type])) {
+      $membership_type = $membership_type_map[$membership_type];
+    }
+
     if (!array_key_exists($membership_type, $this->membershipTypes)) {
       throw new CRM_Donutapp_Processor_Exception(
         "Unknown membership type {$membership_type}"

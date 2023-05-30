@@ -1,21 +1,21 @@
 <?php
 
-use CRM_Donutapp_ExtensionUtil as E;
 use Civi\Test\HeadlessInterface;
 use Civi\Test\HookInterface;
 use Civi\Test\TransactionalInterface;
+use CRM_Donutapp_ExtensionUtil as E;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Response;
-
+use PHPUnit\Framework\TestCase;
 
 /**
  * Test DonutApp API client
  *
  * @group headless
  */
-class CRM_Donutapp_API_ClientTest extends \PHPUnit_Framework_TestCase implements HeadlessInterface, HookInterface, TransactionalInterface {
+class CRM_Donutapp_API_ClientTest extends TestCase implements HeadlessInterface, HookInterface, TransactionalInterface {
   const ACCESS_TOKEN = '9QYEBKqnu8sJruCFyZtjeTJmXiLTEa';
   const SUCCESSFUL_AUTH_RESPONSE = '{"access_token": "' . self::ACCESS_TOKEN . '", "token_type": "Bearer", "expires_in": 172800, "scope": "read write"}';
   const FAILED_AUTH_RESPONSE = '{"error": "invalid_client"}';

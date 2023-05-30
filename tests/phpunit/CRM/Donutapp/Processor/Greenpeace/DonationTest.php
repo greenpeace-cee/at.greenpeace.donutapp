@@ -191,7 +191,7 @@ class CRM_Donutapp_Processor_Greenpeace_DonationTest extends CRM_Donutapp_Proces
     $contract = $this->callAPISuccess('Contract', 'getsingle', [
       'contact_id' => $contact['id'],
     ]);
-    $this->assertEquals('2019-10-26', $contract['join_date']);
+    $this->assertEquals('2019-10-29', $contract['join_date']);
     $this->assertEquals(date('Y-m-d'), $contract['start_date']);
     $number_field = 'custom_' . CRM_Core_BAO_CustomField::getCustomFieldID(
     'membership_contract',
@@ -275,7 +275,7 @@ class CRM_Donutapp_Processor_Greenpeace_DonationTest extends CRM_Donutapp_Proces
     );
   }
 
-  public function testContractJoinDate() {
+  public function testContractStartDate() {
     $container = [];
     $history = Middleware::history($container);
     $mock = new MockHandler([

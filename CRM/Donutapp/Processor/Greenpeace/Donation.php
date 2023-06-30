@@ -208,9 +208,13 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
     // Payment frequency & amount
     $annualAmount = (float) str_replace(',', '.', $donation->donation_amount_annual);
     $frequency = (int) $donation->direct_debit_interval;
-    $amount = $annualAmount / $frequency;
+    // round frequency amount to two decimals digits
+    $amount = (float) round($annualAmount / $frequency, 2);
+    $annualAmountCalculated = (float) $amount * $frequency;
 
-    if ($amount * $frequency !== $annualAmount) {
+    // ensure multiplying frequency amount with frequency interval matches the annual amount
+    // strval() helps us avoid floating point precision issues
+    if (strval($annualAmountCalculated) !== strval($annualAmount)) {
       throw new CRM_Donutapp_Processor_Exception(
         "Contract annual amount '$annualAmount' not divisible by frequency $frequency."
       );

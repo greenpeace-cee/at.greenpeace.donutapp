@@ -14,7 +14,9 @@ class CRM_Donutapp_API_Workshift {
   private static $_fundraisers;
   private static $_workshifts;
 
-  public static function sync($limit = NULL) {
+  public static function sync($offset_date = NULL) {
+    $min_timestamp = is_null($offset_date) ? 0 : strtotime($offset_date);
+
     $count = [
       'total'   => 0,
       'created' => 0,
@@ -22,9 +24,13 @@ class CRM_Donutapp_API_Workshift {
       'deleted' => 0,
     ];
 
-    $unsynced = self::getAllWorkshiftsByExternalIds();
+    $not_found = self::getAllWorkshiftsByExternalIds();
 
-    foreach (self::getFundraiserShifts($limit) as $fr_shift) {
+    foreach (self::getFundraiserShifts() as $fr_shift) {
+      unset($not_found[$fr_shift['id']]);
+
+      if (strtotime($fr_shift['date']) < $min_timestamp) continue;
+
       $fundraiser = self::getFundraiser($fr_shift['fundraiser']);
       $dialoger = self::getOrCreateDialoger($fundraiser);
       $workshift = self::getWorkshift($fr_shift['work_shift']);
@@ -36,11 +42,9 @@ class CRM_Donutapp_API_Workshift {
         'hours'        => $workshift['weight'],
         'workshift_id' => $fr_shift['work_shift'],
       ], $count);
-
-      unset($unsynced[$fr_shift['id']]);
     }
 
-    foreach (array_keys($unsynced) as $ext_id) {
+    foreach (array_keys($not_found) as $ext_id) {
       CustomValue::delete('fundraiser_workshift')
         ->addWhere('external_id', '=', $ext_id)
         ->execute();
@@ -79,6 +83,7 @@ class CRM_Donutapp_API_Workshift {
     }
 
     if (!array_key_exists($id, self::$_fundraisers)) {
+      sleep(1);
       $response = CRM_Donutapp_API_Client::get("fundraisers/$id");
       self::$_fundraisers[$id] = (array) $response;
     }
@@ -86,22 +91,23 @@ class CRM_Donutapp_API_Workshift {
     return self::$_fundraisers[$id];
   }
 
-  private static function getFundraiserShifts($limit = 20) {
+  private static function getFundraiserShifts() {
     $count = 0;
     $page = 1;
 
-    do {
+    while (TRUE) {
+      sleep(1);
       $uri = sprintf('teams/?page_size=%d&page=%d', self::TEAMS_PAGE_SIZE, $page++);
       $response = CRM_Donutapp_API_Client::get($uri);
 
       foreach ($response->results as $team) {
         foreach ($team->team_fundraiser_work_shifts as $shift) {
-          if (++$count > $limit) return;
-
           yield (array) $shift;
         }
       }
-    } while (!is_null($response->next));
+
+      if (is_null($response->next)) break;
+    }
   }
 
   private static function getOrCreateDialoger($fundraiser) {
@@ -133,14 +139,17 @@ class CRM_Donutapp_API_Workshift {
       self::$_workshifts = [];
       $page = 1;
 
-      do {
+      while (TRUE) {
+        sleep(1);
         $uri = sprintf('workshifts/?page_size=%d&page=%d', self::WORKSHIFTS_PAGE_SIZE, $page++);
         $response = CRM_Donutapp_API_Client::get($uri);
 
         foreach ($response->results as $workshift) {
           self::$_workshifts[$workshift->id] = (array) $workshift;
         }
-      } while (!is_null($response->next));
+
+        if (is_null($response->next)) break;
+      }
     }
 
     if (!array_key_exists($id, self::$_workshifts)) return NULL;

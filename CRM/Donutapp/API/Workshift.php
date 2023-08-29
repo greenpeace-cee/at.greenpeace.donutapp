@@ -1,7 +1,10 @@
 <?php
 
+use Civi\Api4\Address;
 use Civi\Api4\Contact;
 use Civi\Api4\CustomValue;
+use Civi\Api4\Email;
+use Civi\Api4\Phone;
 
 class CRM_Donutapp_API_Workshift {
 
@@ -118,6 +121,10 @@ class CRM_Donutapp_API_Workshift {
       ->execute()
       ->first();
 
+    self::setAddress($fundraiser, $contact['id']);
+    self::setEmail($fundraiser, $contact['id']);
+    self::setPhoneNumber($fundraiser, $contact['id']);
+
     return $contact;
   }
 
@@ -176,6 +183,45 @@ class CRM_Donutapp_API_Workshift {
 
       $count['updated']++;
     }
+  }
+
+  private static function setAddress($fr_data, $contact_id) {
+    foreach (['street', 'zip_code', 'city'] as $addr_field) {
+      if (empty($fr_data[$addr_field])) continue;
+
+      Address::create(FALSE)
+        ->addValue('city'                 , $fr_data['city'])
+        ->addValue('contact_id'           , $contact_id)
+        ->addValue('location_type_id:name', 'Home')
+        ->addValue('postal_code'          , $fr_data['zip_code'])
+        ->addValue('street_address'       , $fr_data['street'])
+        ->execute();
+
+      break;
+    }
+  }
+
+  private static function setEmail($fr_data, $contact_id) {
+    if (empty($fr_data['email'])) return;
+
+    Email::create(FALSE)
+      ->addValue('contact_id'           , $contact_id)
+      ->addValue('email'                , $fr_data['email'])
+      ->addValue('is_primary'           , TRUE)
+      ->addValue('location_type_id:name', 'Main')
+      ->execute();
+  }
+
+  private static function setPhoneNumber($fr_data, $contact_id) {
+    if (empty($fr_data['phone_number'])) return;
+
+    Phone::create(FALSE)
+      ->addValue('contact_id'           , $contact_id)
+      ->addValue('is_primary'           , TRUE)
+      ->addValue('location_type_id:name', 'Main')
+      ->addValue('phone'                , $fr_data['phone_number'])
+      ->addValue('phone_type_id:name'   , 'Phone')
+      ->execute();
   }
 
 }

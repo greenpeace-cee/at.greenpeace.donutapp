@@ -215,7 +215,7 @@ class CRM_Donutapp_API_Client {
       $body
     );
     $response = self::sendRawRequest($request);
-    $body = $response->getBody();
+    $body = (string) $response->getBody();
     if (defined('CIVICRM_DONUTAPP_LOGGING') && CIVICRM_DONUTAPP_LOGGING) {
       CRM_Core_Error::debug_log_message(
         'Donutapp API Response: ' . $body

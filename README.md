@@ -44,6 +44,8 @@ To import petitions, use the `DonutPetition.import` API call.
 
 To import donations, use the `DonutDonation.import` API call.
 
+To import work shifts of fundraisers, use the `FormunautsWorkshift.sync` API call.
+
 Campaigns used when creating entities can be specified through various means
 and are used in this precedence:
 

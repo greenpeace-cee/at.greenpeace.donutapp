@@ -127,9 +127,12 @@ class CRM_Donutapp_API_Workshift {
       ->execute()
       ->first();
 
-    self::setAddress($fundraiser, $contact['id']);
-    self::setEmail($fundraiser, $contact['id']);
-    self::setPhoneNumber($fundraiser, $contact['id']);
+    if (\Civi::settings()->get('donutapp_sync_fundraiser_contact_details')) {
+      self::setAddress($fundraiser, $contact['id']);
+      self::setEmail($fundraiser, $contact['id']);
+      self::setPhoneNumber($fundraiser, $contact['id']);
+    }
+
 
     return $contact;
   }

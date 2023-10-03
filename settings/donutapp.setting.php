@@ -34,4 +34,15 @@ return [
     'is_contact'  => 0,
     'description' => ts('This maps DD-only membership product names to Civi membership types. This is optional, membership type names are used as a fallback.'),
   ],
+  'donutapp_sync_fundraiser_contact_details' => [
+    'name'        => 'donutapp_sync_fundraiser_contact_details',
+    'type'        => 'Boolean',
+    'html_type'   => 'checkbox',
+    'default'     => TRUE,
+    'add'         => '2.4',
+    'title'       => ts('DonutApp: Import Fundraiser Contact Details? (Email/Phone/Address)'),
+    'is_domain'   => 1,
+    'is_contact'  => 0,
+    'description' => ts('Should synchronization of fundraisers include contact details like email, phone and address?'),
+  ],
 ];

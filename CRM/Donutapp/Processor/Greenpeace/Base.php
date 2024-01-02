@@ -47,16 +47,16 @@ abstract class CRM_Donutapp_Processor_Greenpeace_Base extends CRM_Donutapp_Proce
   /**
    * Find or create a dialoger based on the dialoger ID
    *
-   * @param $petition
+   * @param $entity
    *
    * @return |null
    * @throws \CiviCRM_API3_Exception
    */
-  protected function findOrCreateDialoger($petition) {
-    if (!preg_match('/^gpat\-(\d{4,5})$/', $petition->fundraiser_code, $match)) {
+  protected function findOrCreateDialoger($entity) {
+    if (!preg_match('/^(\w+)\-(\d+)$/', $entity->fundraiser_code, $match)) {
       return NULL;
     }
-    $dialoger_id = $match[1];
+    $dialoger_id = str_replace('gpat-', '', $entity->fundraiser_code);
     $dialoger_id_field = 'custom_' . CRM_Core_BAO_CustomField::getCustomFieldID('dialoger_id', 'dialoger_data');
     // lookup dialoger by dialoger_id, get the first match
     $dialoger = civicrm_api3('Contact', 'get', [
@@ -68,14 +68,14 @@ abstract class CRM_Donutapp_Processor_Greenpeace_Base extends CRM_Donutapp_Proce
     if (empty($dialoger['id'])) {
       // no matching dialoger found, create with dialoger_id and name
       $dialoger_start_field = 'custom_' . CRM_Core_BAO_CustomField::getCustomFieldID('dialoger_start_date', 'dialoger_data');
-      $name = explode(',', $petition->fundraiser_name);
+      $name = explode(',', $entity->fundraiser_name);
       $first_name = $last_name = NULL;
       if (count($name) == 2) {
         $first_name = trim($name[1]);
         $last_name = $name[0];
       }
       else {
-        $last_name = $petition->fundraiser_name;
+        $last_name = $entity->fundraiser_name;
       }
       // fetch campaign title for contact source
       $source = civicrm_api3('Campaign', 'getvalue', [

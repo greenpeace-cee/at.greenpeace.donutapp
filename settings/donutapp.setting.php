@@ -45,4 +45,15 @@ return [
     'is_contact'  => 0,
     'description' => ts('Should synchronization of fundraisers include contact details like email, phone and address?'),
   ],
+  'donutapp_workshift_customer_filter' => [
+    'name'        => 'donutapp_workshift_customer_filter',
+    'type'        => 'Array',
+    'html_type'   => 'text',
+    'default'     => NULL,
+    'add'         => '2.4',
+    'title'       => ts('DonutApp: Limit Workshift Import to customer IDs'),
+    'is_domain'   => 1,
+    'is_contact'  => 0,
+    'description' => ts('Workshifts for which customer IDs should be imported?'),
+  ],
 ];

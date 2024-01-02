@@ -26,6 +26,7 @@ class CRM_Donutapp_API_Workshift {
 
     $not_found = self::getAllWorkshiftsByExternalIds();
 
+
     foreach (self::getFundraiserShifts() as $fr_shift) {
       unset($not_found[$fr_shift['id']]);
 
@@ -94,6 +95,7 @@ class CRM_Donutapp_API_Workshift {
   private static function getFundraiserShifts() {
     $count = 0;
     $page = 1;
+    $customer_filter = Civi::settings()->get('donutapp_workshift_customer_filter') ?? [];
 
     while (TRUE) {
       sleep(1);
@@ -101,6 +103,10 @@ class CRM_Donutapp_API_Workshift {
       $response = CRM_Donutapp_API_Client::get($uri);
 
       foreach ($response->results as $team) {
+        if (!empty($customer_filter) && !in_array($team->customer, $customer_filter)) {
+          // we're filtering by customer ID and this is not a customer we want to import
+          continue;
+        }
         foreach ($team->team_fundraiser_work_shifts as $shift) {
           yield (array) $shift;
         }

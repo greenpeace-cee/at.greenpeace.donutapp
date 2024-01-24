@@ -192,12 +192,19 @@ class CRM_Donutapp_API_Workshift {
     if (
       $fr_shift['date'] !== $params['date']
       || $fr_shift['hours'] !== $params['hours']
+      || $fr_shift['entity_id'] != $params['entity_id']
     ) {
       CustomValue::update('fundraiser_workshift')
         ->addWhere('external_id', '=', $fr_shift['external_id'])
         ->addValue('date', $params['date'])
         ->addValue('hours', $params['hours'])
         ->execute();
+
+      // CustomValue API4 does not support updates to entity_id; fall back to SQL
+      CRM_Core_DAO::executeQuery("UPDATE civicrm_value_fundraiser_workshift SET entity_id = %1 WHERE id = %2", [
+        1 => [$params['entity_id'], 'Integer'],
+        2 => [$fr_shift['id'], 'Integer'],
+      ]);
 
       $count['updated']++;
     }

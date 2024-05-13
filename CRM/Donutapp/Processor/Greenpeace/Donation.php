@@ -436,7 +436,7 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
    * @return string
    */
   protected function getEmailSubject(CRM_Donutapp_API_Entity $entity) {
-    return 'Wir sagen Danke!';
+    return 'Wie war Ihr Gespräch?';
   }
 
 }

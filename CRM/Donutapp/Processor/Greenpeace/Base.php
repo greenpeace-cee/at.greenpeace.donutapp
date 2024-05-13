@@ -193,13 +193,15 @@ abstract class CRM_Donutapp_Processor_Greenpeace_Base extends CRM_Donutapp_Proce
       'status_id'            => 'Completed',
       'medium_id'            => 'email',
       'campaign_id'          => $campaignId,
-      'subject'              => "\"{$subject}\" - {$email}",
+      'subject'              => $subject,
       $email_field           => $email,
       $mailing_subject_field => $subject,
       $parent_field          => $parentActivityId,
       $email_provider_field  => 'Formunauts',
       $mailing_type_field    => 'Transactional',
     ];
+
+    // TODO: add to civicrm_activity_contact_email
 
     return civicrm_api3(
       'Activity',
@@ -232,7 +234,7 @@ abstract class CRM_Donutapp_Processor_Greenpeace_Base extends CRM_Donutapp_Proce
       'medium_id'           => 'email',
       'status_id'           => 'Completed',
       'campaign_id'         => $campaignId,
-      'subject'             => "{$bounceType} - {$email}",
+      'subject'             => $bounceType,
       $email_field          => $email,
       $bounce_type_field    => $bounceType,
       $parent_field         => $parentActivityId,

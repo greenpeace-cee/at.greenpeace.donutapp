@@ -4,7 +4,6 @@ use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Response;
-use Tdely\Luhn\Luhn;
 
 /**
  * Test donation/contract import
@@ -75,8 +74,7 @@ class CRM_Donutapp_Processor_Greenpeace_DonationTest extends CRM_Donutapp_Proces
         200,
         ['Content-Type' => 'application/json'],
         str_replace(
-          ['{EXTERNAL_CAMPAIGN_ID}', '{EXTERNAL_CONTACT_ID}'],
-          [$this->altCampaignId, Luhn::create($this->contactId)],
+          ['{EXTERNAL_CAMPAIGN_ID}']],
           self::DONATION_RESPONSE
         )
       ),
@@ -283,8 +281,8 @@ class CRM_Donutapp_Processor_Greenpeace_DonationTest extends CRM_Donutapp_Proces
         200,
         ['Content-Type' => 'application/json'],
         str_replace(
-          ['{EXTERNAL_CAMPAIGN_ID}', '{EXTERNAL_CONTACT_ID}'],
-          [$this->altCampaignId, Luhn::create($this->contactId)],
+          ['{EXTERNAL_CAMPAIGN_ID}'],
+          [$this->altCampaignId],
           self::DONATION_RESPONSE_JOIN_DATE
         )
       ),

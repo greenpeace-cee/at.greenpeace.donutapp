@@ -1,7 +1,5 @@
 <?php
 
-use Tdely\Luhn\Luhn;
-
 class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_Greenpeace_Base {
 
   /**
@@ -171,12 +169,8 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
 
     $external_contact_id = $donation->external_contact_id;
     if (!empty($external_contact_id)) {
-      if (Luhn::isValid($external_contact_id)) {
-        // remove trailing check digit
-        $contact_data['id'] = substr($external_contact_id, 0, -1);
-      } else {
-        Civi::log()->warning("[donutapp] Got invalid value for external_contact_id: '{$external_contact_id}'");
-      }
+      // remove trailing check digit
+      $contact_data['id'] = substr($external_contact_id, 0, -1);
     }
 
     // remove empty attributes to prevent creation of useless diff activity

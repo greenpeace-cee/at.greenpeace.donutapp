@@ -27,7 +27,7 @@ class CRM_Donutapp_Processor_Greenpeace_PetitionTest extends CRM_Donutapp_Proces
       ->apply(TRUE); // recreate every time: ContactType.create seems to bypass TransactionalInterface
   }
 
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
 
     // mock authentication

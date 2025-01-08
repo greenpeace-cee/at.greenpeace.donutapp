@@ -20,7 +20,7 @@ abstract class CRM_Donutapp_Processor_Greenpeace_BaseTest extends TestCase imple
   protected $campaignId;
   protected $mailingActivityTypeID;
 
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
 
     // required to add e.g. custom fields for "Petition" activity type as
@@ -62,7 +62,7 @@ abstract class CRM_Donutapp_Processor_Greenpeace_BaseTest extends TestCase imple
     }
   }
 
-  public function tearDown() {
+  public function tearDown(): void {
     parent::tearDown();
   }
 

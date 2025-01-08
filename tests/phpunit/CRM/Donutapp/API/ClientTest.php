@@ -25,13 +25,13 @@ class CRM_Donutapp_API_ClientTest extends TestCase implements HeadlessInterface,
       ->apply();
   }
 
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     CRM_Donutapp_API_Client::setAPIEndpoint('https://donutapp.mock/api/v1/');
     CRM_Donutapp_API_Client::setOAuth2Endpoint('https://donutapp.mock/o/token/?grant_type=client_credentials');
   }
 
-  public function tearDown() {
+  public function tearDown(): void {
     parent::tearDown();
   }
 

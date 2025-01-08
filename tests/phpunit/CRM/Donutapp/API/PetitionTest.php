@@ -24,7 +24,7 @@ class CRM_Donutapp_API_PetitionTest extends TestCase implements HeadlessInterfac
       ->apply();
   }
 
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     CRM_Donutapp_API_Client::setAPIEndpoint('https://donutapp.mock/api/v1/');
     CRM_Donutapp_API_Client::setOAuth2Endpoint('https://donutapp.mock/o/token/?grant_type=client_credentials');
@@ -36,7 +36,7 @@ class CRM_Donutapp_API_PetitionTest extends TestCase implements HeadlessInterfac
     CRM_Donutapp_API_Client::setupOauth2Client(['handler' => $stack]);
   }
 
-  public function tearDown() {
+  public function tearDown(): void {
     parent::tearDown();
   }
 
@@ -67,7 +67,7 @@ class CRM_Donutapp_API_PetitionTest extends TestCase implements HeadlessInterfac
     // request should have set header Accept: application/json
     $this->assertEquals('application/json', $petitionRequest->getHeader('Accept')[0]);
     // authz header should be set to auth token
-    $this->assertContains(CRM_Donutapp_API_Client::$accessToken, $petitionRequest->getHeader('Authorization')[0]);
+    $this->assertStringContainsString(CRM_Donutapp_API_Client::$accessToken, $petitionRequest->getHeader('Authorization')[0]);
 
     // we expect two petitions
     $this->assertCount(2, $petitions);

@@ -55,7 +55,7 @@ class CRM_Donutapp_Processor_Greenpeace_DonationTest extends CRM_Donutapp_Proces
     $this->assertNotEmpty($default_creditor_id, "There is no default SEPA creditor set");
   }
 
-  public function setUp() {
+  public function setUp(): void {
     $this->setUpContractExtension();
     parent::setUp();
     // mock authentication
@@ -74,7 +74,7 @@ class CRM_Donutapp_Processor_Greenpeace_DonationTest extends CRM_Donutapp_Proces
         200,
         ['Content-Type' => 'application/json'],
         str_replace(
-          ['{EXTERNAL_CAMPAIGN_ID}']],
+          ['{EXTERNAL_CAMPAIGN_ID}'],
           self::DONATION_RESPONSE
         )
       ),

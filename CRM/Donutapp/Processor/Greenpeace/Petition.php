@@ -81,24 +81,19 @@ class CRM_Donutapp_Processor_Greenpeace_Petition extends CRM_Donutapp_Processor_
    */
   protected function processPetition(CRM_Donutapp_API_Petition $petition) {
     if (!$this->isDeferrable($petition)) {
-      $prefix = NULL;
-      switch ($petition->donor_sex) {
-        case 1:
-          $prefix = 'Herr';
-          break;
-
-        case 2:
-          $prefix = 'Frau';
-          break;
+      $gender = CRM_Donutapp_Util::getGender($petition);
+      if (empty($gender)) {
+        Civi::log()->warning('Unable to determine gender', $petition);
       }
+      $prefix = CRM_Donutapp_Util::getPrefix($petition);
       $signature_date = new DateTime($petition->createtime);
       $signature_date->setTimezone(new DateTimeZone(date_default_timezone_get()));
 
-      $phone = trim($petition->donor_mobile);
+      $phone = trim($petition->donor_mobile ?? '');
       if (empty($phone)) {
-        $phone = trim($petition->donor_phone);
+        $phone = trim($petition->donor_phone ?? '');
       }
-      $email = trim($petition->donor_email);
+      $email = trim($petition->donor_email ?? '');
 
       if (empty($phone) && empty($email)) {
         // discard petition
@@ -111,7 +106,8 @@ class CRM_Donutapp_Processor_Greenpeace_Petition extends CRM_Donutapp_Processor_
       }
 
       $params = [
-        'prefix'              => $prefix,
+        'gender_id'           => $gender,
+        'prefix_id'           => $prefix,
         'first_name'          => $petition->donor_first_name,
         'last_name'           => $petition->donor_last_name,
         'birth_date'          => $petition->donor_date_of_birth,

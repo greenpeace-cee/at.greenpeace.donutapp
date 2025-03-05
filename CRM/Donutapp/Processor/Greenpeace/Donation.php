@@ -136,14 +136,10 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
    * @throws \CiviCRM_API3_Exception
    */
   protected function createContact(CRM_Donutapp_API_Donation $donation) {
-    switch ($donation->donor_sex) {
-      case 1:
-        $prefix = 'Herr';
-        break;
 
-      case 2:
-        $prefix = 'Frau';
-        break;
+    $gender = CRM_Donutapp_Util::getGender($donation);
+    if (empty($gender)) {
+      Civi::log()->warning('Unable to determine gender', $donation);
     }
 
     $phone = $donation->donor_mobile;
@@ -157,21 +153,15 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
       'formal_title'   => $donation->donor_academic_title,
       'first_name'     => $donation->donor_first_name,
       'last_name'      => $donation->donor_last_name,
-      'prefix_id'      => $prefix,
+      'gender_id'      => $gender,
       'birth_date'     => $donation->donor_date_of_birth,
       'country_id'     => $donation->donor_country,
       'postal_code'    => $donation->donor_zip_code,
       'city'           => $donation->donor_city,
-      'street_address' => trim(trim($donation->donor_street) . ' ' . trim($donation->donor_house_number)),
+      'street_address' => trim(trim($donation->donor_street ?? '') . ' ' . trim($donation->donor_house_number ?? '')),
       'email'          => $donation->donor_email,
       'phone'          => $phone,
     ];
-
-    $external_contact_id = $donation->external_contact_id;
-    if (!empty($external_contact_id)) {
-      // remove trailing check digit
-      $contact_data['id'] = substr($external_contact_id, 0, -1);
-    }
 
     // remove empty attributes to prevent creation of useless diff activity
     foreach ($contact_data as $key => $value) {

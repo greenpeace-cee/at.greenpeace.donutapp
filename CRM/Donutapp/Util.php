@@ -21,4 +21,32 @@ class CRM_Donutapp_Util {
     civicrm_api3('Activity', 'create', $params);
   }
 
+  public static function getGender(CRM_Donutapp_API_Entity $entity) {
+    $salutation = $entity->donor_salutation;
+    if (!empty($salutation)) {
+      switch ($salutation) {
+        case 1:
+          return 'male';
+
+        case 2:
+          return 'female';
+
+        case 5:
+          return 'other';
+
+      }
+    }
+    else {
+      switch ($entity->donor_sex) {
+        case 1:
+          return 'male';
+
+        case 2:
+          return 'female';
+
+      }
+    }
+    return NULL;
+  }
+
 }

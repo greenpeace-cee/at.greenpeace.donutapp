@@ -49,4 +49,17 @@ class CRM_Donutapp_Util {
     return NULL;
   }
 
+  public static function getPrefix(CRM_Donutapp_API_Entity $entity) {
+    $gender = self::getGender($entity);
+    switch ($gender) {
+      case 'male':
+        return 3;
+
+      case 'female':
+        return 2;
+
+    }
+    return NULL;
+  }
+
 }

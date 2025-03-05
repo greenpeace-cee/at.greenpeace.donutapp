@@ -141,6 +141,7 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
     if (empty($gender)) {
       Civi::log()->warning('Unable to determine gender', $donation);
     }
+    $prefix = CRM_Donutapp_Util::getPrefix($donation);
 
     $phone = $donation->donor_mobile;
     if (empty($phone)) {
@@ -154,6 +155,7 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
       'first_name'     => $donation->donor_first_name,
       'last_name'      => $donation->donor_last_name,
       'gender_id'      => $gender,
+      'prefix_id'      => $prefix,
       'birth_date'     => $donation->donor_date_of_birth,
       'country_id'     => $donation->donor_country,
       'postal_code'    => $donation->donor_zip_code,

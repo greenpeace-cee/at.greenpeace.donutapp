@@ -85,6 +85,7 @@ class CRM_Donutapp_Processor_Greenpeace_Petition extends CRM_Donutapp_Processor_
       if (empty($gender)) {
         Civi::log()->warning('Unable to determine gender', $petition);
       }
+      $prefix = CRM_Donutapp_Util::getPrefix($petition);
       $signature_date = new DateTime($petition->createtime);
       $signature_date->setTimezone(new DateTimeZone(date_default_timezone_get()));
 
@@ -106,6 +107,7 @@ class CRM_Donutapp_Processor_Greenpeace_Petition extends CRM_Donutapp_Processor_
 
       $params = [
         'gender_id'           => $gender,
+        'prefix_id'           => $prefix,
         'first_name'          => $petition->donor_first_name,
         'last_name'           => $petition->donor_last_name,
         'birth_date'          => $petition->donor_date_of_birth,

@@ -171,6 +171,7 @@ class CRM_Donutapp_Processor_Greenpeace_DonationTest extends CRM_Donutapp_Proces
     $this->assertEquals('Jon', $contact['first_name']);
     $this->assertEquals('Snow', $contact['last_name']);
     $this->assertEquals('Other', $contact['gender']);
+    $this->assertEquals('', $contact['prefix_id']);
     $this->assertFalse(
       $this->getLastImportError(),
       'Should not create any import error activities'

@@ -137,6 +137,7 @@ class CRM_Donutapp_Processor_Greenpeace_PetitionTest extends CRM_Donutapp_Proces
     // test phone set via donor_mobile
     $this->assertEquals('+43 680 1234321', $contact['phone']);
     $this->assertEquals('Male', $contact['gender']);
+    $this->assertEquals('3', $contact['prefix_id']);
 
     $contact = $this->callAPISuccess('Contact', 'getsingle', [
       'email' => 'lisadoe@example.org',

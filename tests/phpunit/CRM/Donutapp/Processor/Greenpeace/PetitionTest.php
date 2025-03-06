@@ -24,6 +24,7 @@ class CRM_Donutapp_Processor_Greenpeace_PetitionTest extends CRM_Donutapp_Proces
       ->installMe(__DIR__)
       ->install('de.systopia.xcm')
       ->install('at.greenpeace.gpapi')
+      ->install('de.systopia.identitytracker')
       ->apply(TRUE); // recreate every time: ContactType.create seems to bypass TransactionalInterface
   }
 

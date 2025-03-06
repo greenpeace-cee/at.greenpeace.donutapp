@@ -62,4 +62,20 @@ class CRM_Donutapp_Util {
     return NULL;
   }
 
+  public static function getContactIdByDialogerId($dialoger_id) {
+    // try to find dialoger via identitytracker
+    try {
+      $result = civicrm_api3('Contact', 'findbyidentity', [
+        'identifier' => $dialoger_id,
+        'identifier_type' => 'dialoger_id',
+      ]);
+      if (!empty($result['id'])) {
+        return $result['id'];
+      }
+    } catch (Exception $e) {
+      Civi::log()->warning('Unable to identify dialoger using identitytracker: ' . $e->getMessage());
+    }
+    return NULL;
+  }
+
 }

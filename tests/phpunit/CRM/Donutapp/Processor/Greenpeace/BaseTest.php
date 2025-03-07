@@ -164,6 +164,14 @@ abstract class CRM_Donutapp_Processor_Greenpeace_BaseTest extends TestCase imple
       'label' => 'Dialoger',
     ]);
 
+    $this->callAPISuccess('CustomField', 'create', [
+      'custom_group_id' => 'dialoger_data',
+      'name' => 'dialoger_start_date',
+      'data_type' => 'Date',
+      'html_type' => 'Select Date',
+      'label' => 'Dialoger Start Date',
+    ]);
+
     \Civi\Api4\OptionValue::create(FALSE)
       ->addValue('option_group_id:name', 'contact_id_history_type')
       ->addValue('label', 'Dialoger ID')

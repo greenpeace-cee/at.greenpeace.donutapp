@@ -20,6 +20,8 @@ abstract class CRM_Donutapp_Processor_Greenpeace_BaseTest extends TestCase imple
   protected $campaignId;
   protected $mailingActivityTypeID;
 
+  protected $dialoger;
+
   public function setUp(): void {
     parent::setUp();
 
@@ -154,13 +156,60 @@ abstract class CRM_Donutapp_Processor_Greenpeace_BaseTest extends TestCase imple
       'extends_entity_column_value' => 'Dialoger',
     ]);
 
-    $this->callAPISuccess('CustomField', 'create', [
+    $dialogerIdField = $this->callAPISuccess('CustomField', 'create', [
       'custom_group_id' => 'dialoger_data',
       'name' => 'dialoger_id',
       'data_type' => 'String',
       'html_type' => 'Text',
       'label' => 'Dialoger',
     ]);
+
+    $this->callAPISuccess('CustomField', 'create', [
+      'custom_group_id' => 'dialoger_data',
+      'name' => 'dialoger_start_date',
+      'data_type' => 'Date',
+      'html_type' => 'Select Date',
+      'label' => 'Dialoger Start Date',
+    ]);
+
+    \Civi\Api4\OptionValue::create(FALSE)
+      ->addValue('option_group_id:name', 'contact_id_history_type')
+      ->addValue('label', 'Dialoger ID')
+      ->addValue('value', 'dialoger_id')
+      ->execute();
+
+    Civi::settings()->set('identitytracker_mapping', [
+      $dialogerIdField['id'] => 'dialoger_id',
+    ]);
+
+
+    $this->dialoger = \Civi\Api4\Contact::create(FALSE)
+      ->addValue('contact_type:name', 'Individual')
+      ->addValue('contact_sub_type:name', [
+        'Dialoger',
+      ])
+      ->addValue('dialoger_data.dialoger_id', 1337)
+      ->addValue('first_name', 'Benjen')
+      ->addValue('last_name', 'Stark')
+      ->execute()
+      ->first()['id'];
+
+    $dupe = \Civi\Api4\Contact::create(FALSE)
+      ->addValue('contact_type:name', 'Individual')
+      ->addValue('contact_sub_type:name', [
+        'Dialoger',
+      ])
+      ->addValue('dialoger_data.dialoger_id', 420)
+      ->addValue('first_name', 'Benjen')
+      ->addValue('last_name', 'Stark')
+      ->execute()
+      ->first()['id'];
+
+    \Civi\Api4\Contact::mergeDuplicates(FALSE)
+      ->setContactId($this->dialoger)
+      ->setDuplicateId($dupe)
+      ->setMode('aggressive')
+      ->execute();
   }
 
 }

@@ -2,12 +2,12 @@
   "name": "greenpeace-cee/donutapp",
   "type": "civicrm-ext",
   "require": {
-    "guzzlehttp/guzzle": "^7.3",
-    "php": "7.2 || ~8"
+    "guzzlehttp/guzzle": "^7.4",
+    "php": "7.4 || ~8"
   },
   "config": {
     "platform": {
-      "php": "7.2"
+      "php": "7.4"
     }
   }
 }

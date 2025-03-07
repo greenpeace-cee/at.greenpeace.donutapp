@@ -117,13 +117,17 @@ class CRM_Donutapp_API_Workshift {
   }
 
   private static function getOrCreateDialoger($fundraiser) {
-    $contact = Contact::get(FALSE)
-      ->addWhere('dialoger_data.dialoger_id', '=', $fundraiser['fundraiser_code'])
-      ->execute()
-      ->first();
+    $dialoger = CRM_Donutapp_Util::getContactIdByDialogerId($fundraiser['fundraiser_code']);
+    if (!empty($dialoger)) {
+      $contact = Contact::get(FALSE)
+        ->addWhere('id', '=', $dialoger)
+        ->execute()
+        ->first();
 
-    if (!is_null($contact)) return $contact;
+      if (!is_null($contact)) return $contact;
+    }
 
+    // dialoger doesn't exist, create
     $contact = Contact::create(FALSE)
       ->addValue('contact_sub_type'         , ['Dialoger'])
       ->addValue('contact_type'             , 'Individual')
@@ -138,7 +142,6 @@ class CRM_Donutapp_API_Workshift {
       self::setEmail($fundraiser, $contact['id']);
       self::setPhoneNumber($fundraiser, $contact['id']);
     }
-
 
     return $contact;
   }

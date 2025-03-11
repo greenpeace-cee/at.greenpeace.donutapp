@@ -1,6 +1,6 @@
 # CiviCRM DonutApp Integration
 
-[![CircleCI](https://circleci.com/gh/greenpeace-cee/at.greenpeace.donutapp.svg?style=svg)](https://circleci.com/gh/greenpeace-cee/at.greenpeace.donutapp)
+[![Run unit tests](https://github.com/greenpeace-cee/at.greenpeace.donutapp/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/greenpeace-cee/at.greenpeace.donutapp/actions/workflows/unit-tests.yml)
 
 This extension connects CiviCRM with [DonutApp](https://donutapp.io/app/) by [Formunauts](https://www.formunauts.at/en/).
 

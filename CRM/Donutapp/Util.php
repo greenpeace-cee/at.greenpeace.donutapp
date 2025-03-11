@@ -1,5 +1,7 @@
 <?php
 
+use Civi\Api4\Contact;
+
 class CRM_Donutapp_Util {
   // @TODO: use a more generic name/type
   static $IMPORT_ERROR_ACTIVITY_TYPE = 'streetimport_error';
@@ -58,6 +60,32 @@ class CRM_Donutapp_Util {
       case 'female':
         return 2;
 
+    }
+    return NULL;
+  }
+
+  public static function getContactIdByDialogerId($dialoger_id) {
+    // try to find dialoger via identitytracker
+    try {
+      $result = civicrm_api3('Contact', 'findbyidentity', [
+        'identifier' => $dialoger_id,
+        'identifier_type' => 'dialoger_id',
+      ]);
+      if (!empty($result['id'])) {
+        return $result['id'];
+      }
+    } catch (Exception $e) {
+      Civi::log()->warning('Unable to identify dialoger using identitytracker: ' . $e->getMessage());
+    }
+    // couldn't find via identitytracker, possibly because of dupe ID
+    // fall back to lookup via Dialoger ID field, preferring contact with most recent start date
+    $contact = Contact::get(FALSE)
+      ->addWhere('dialoger_data.dialoger_id', '=', $dialoger_id)
+      ->addOrderBy('dialoger_data.dialoger_start_date', 'DESC')
+      ->execute()
+      ->first();
+    if (!empty($contact['id'])) {
+      return $contact['id'];
     }
     return NULL;
   }

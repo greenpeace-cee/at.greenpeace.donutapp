@@ -139,7 +139,7 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
 
     $gender = CRM_Donutapp_Util::getGender($donation);
     if (empty($gender)) {
-      Civi::log()->warning('Unable to determine gender', $donation);
+      Civi::log()->warning('Unable to determine gender', $donation->getData());
     }
     $prefix = CRM_Donutapp_Util::getPrefix($donation);
 

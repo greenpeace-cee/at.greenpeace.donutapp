@@ -83,7 +83,7 @@ class CRM_Donutapp_Processor_Greenpeace_Petition extends CRM_Donutapp_Processor_
     if (!$this->isDeferrable($petition)) {
       $gender = CRM_Donutapp_Util::getGender($petition);
       if (empty($gender)) {
-        Civi::log()->warning('Unable to determine gender', $petition);
+        Civi::log()->warning('Unable to determine gender', $petition->getData());
       }
       $prefix = CRM_Donutapp_Util::getPrefix($petition);
       $signature_date = new DateTime($petition->createtime);

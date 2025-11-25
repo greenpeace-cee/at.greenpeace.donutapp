@@ -82,6 +82,8 @@ jobs:
           git clone https://github.com/greenpeace-cee/de.systopia.xcm.git
           git clone https://github.com/greenpeace-cee/at.greenpeace.gpapi.git
           git clone https://github.com/greenpeace-cee/de.systopia.identitytracker.git
+          git clone https://github.com/greenpeace-cee/be.aivl.streetimport.git
+          git clone https://github.com/greenpeace-cee/greenpeace_contribute.git
           cv en de.systopia.contract com.cividesk.normalize de.systopia.xcm at.greenpeace.gpapi de.systopia.identitytracker
           cv en at.greenpeace.donutapp
       - id: run-tests

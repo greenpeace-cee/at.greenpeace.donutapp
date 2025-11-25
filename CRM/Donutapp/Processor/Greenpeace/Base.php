@@ -101,7 +101,7 @@ abstract class CRM_Donutapp_Processor_Greenpeace_Base extends CRM_Donutapp_Proce
    *
    * @throws \Exception
    */
-  protected function processWelcomeEmail(CRM_Donutapp_API_Entity $entity, $contactId, $parentActivityId) {
+  protected function processWelcomeEmail(CRM_Donutapp_API_Entity $entity, $contactId, $parentActivityId = NULL) {
     $create_date = new DateTime($entity->createtime);
     $create_date->setTimezone(new DateTimeZone(date_default_timezone_get()));
     $apiParams = [

@@ -1,5 +1,6 @@
 <?php
 
+use CRM_Donutapp_ExtensionUtil as E;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
@@ -11,10 +12,6 @@ use GuzzleHttp\Psr7\Response;
  * @group headless
  */
 class CRM_Donutapp_Processor_Greenpeace_PetitionTest extends CRM_Donutapp_Processor_Greenpeace_BaseTest {
-
-  const SUCCESSFUL_AUTH_RESPONSE = '{"access_token": "secret", "token_type": "Bearer", "expires_in": 172800, "scope": "read write"}';
-  const PETITION_RESPONSE = '{"count":4,"total_pages":1,"next":null,"previous":null,"results":[{"donor_last_name":"Doe","uploadtime":"2019-01-17T10:20:37.649402Z","newsletter_optin":"1","uid":12345,"donor_house_number":"13","donor_salutation":1,"donor_email":"johndoe@example.com","on_hold_comment":"","campaign_id":51,"agency_id":"","donor_age_in_years":20,"donor_city":"Vienna","donor_zip_code":"1030","fundraiser_name":"Doe, Janet","comments":null,"on_hold":false,"change_note_public":"","donor_date_of_birth":"1999-01-05","donor_country":"AT","welcome_email_status":"sent","donor_first_name":"John","campaign_type":1,"organisation_id":null,"special1":"","campaign_type2":"city_campaign","donor_mobile":"+43 680 1234321","donor_sex":1,"donor_occupation":6,"donor_phone":null,"fundraiser_code":"gpat-4200","contact_by_email":0,"change_note_private":"","special2":"","donor_street":"Landstraße","donor_academic_title":null,"person_id":"12345","pdf":"https://donutapp.mock/api/v1/petitions/pdf/?uid=12345","contact_by_phone":0,"customer_id":532,"createtime":"2019-01-17T10:20:41.966000Z","petition_id":"{PETITION_ID}"},{"donor_last_name":"Doe","uploadtime":"2019-01-17T10:15:53.078149Z","newsletter_optin":null,"uid":76543,"donor_house_number":"33","donor_salutation":2,"donor_email":"lisadoe@example.org","campaign_id":51,"agency_id":"","donor_age_in_years":25,"donor_city":"Graz","donor_zip_code":"8041","fundraiser_name":"Doe, Janet","comments":null,"status":"none","change_note_public":"","donor_date_of_birth":"1994-03-11","donor_country":"AT","welcome_email_status":"sent","donor_first_name":"Lisa","campaign_type":1,"organisation_id":null,"special1":"","campaign_type2":"city_campaign","donor_mobile":null,"donor_sex":2,"donor_occupation":6,"donor_phone":"+43 664 1234543","fundraiser_code":"gpat-4200","contact_by_email":0,"change_note_private":"","special2":"","donor_street":"Rathausplatz","donor_academic_title":null,"person_id":"34567","pdf":"https://donutapp.io/api/v1/petitions/pdf/?uid=76543","contact_by_phone":0,"customer_id":532,"createtime":"2019-01-17T10:15:47.396000Z","petition_id":"{PETITION_ID}"},{"donor_last_name":"Doe","uploadtime":"2019-01-17T10:15:53.078149Z","newsletter_optin":null,"uid":76542,"donor_house_number":"33","donor_salutation":2,"donor_email":null,"on_hold_comment":"","campaign_id":51,"agency_id":"","donor_age_in_years":25,"donor_city":"Wien","donor_zip_code":"1030","fundraiser_name":"Doe, Janet","comments":null,"on_hold":false,"change_note_public":"","donor_date_of_birth":"1993-03-11","donor_country":"AT","welcome_email_status":"sent","donor_first_name":"Sue","campaign_type":1,"organisation_id":null,"special1":"","campaign_type2":"city_campaign","donor_mobile":null,"donor_sex":2,"donor_occupation":6,"donor_phone":"+43 677 1234543","fundraiser_code":"gpat-4200","contact_by_email":0,"change_note_private":"","special2":"","donor_street":"Rathausplatz","donor_academic_title":null,"person_id":"34568","pdf":"https://donutapp.io/api/v1/petitions/pdf/?uid=76543","contact_by_phone":0,"customer_id":532,"createtime":"2019-01-17T10:15:47.396000Z","petition_id":"{PETITION_ID}"},{"donor_last_name":"Discard","uploadtime":"2019-01-18T10:20:37.649402Z","newsletter_optin":"1","uid":53219,"donor_house_number":"13","donor_salutation":2,"donor_email":"","on_hold_comment":"","campaign_id":51,"agency_id":"","donor_age_in_years":20,"donor_city":"Vienna","donor_zip_code":"1030","fundraiser_name":"Doe, Janet","comments":null,"on_hold":false,"change_note_public":"","donor_date_of_birth":"1999-02-04","donor_country":"AT","welcome_email_status":"sent","donor_first_name":"John","campaign_type":1,"organisation_id":null,"special1":"","campaign_type2":"city_campaign","donor_mobile":"","donor_sex":2,"donor_occupation":6,"donor_phone":null,"fundraiser_code":"gpat-4200","contact_by_email":0,"change_note_private":"","special2":"","donor_street":"Landstraße","donor_academic_title":null,"person_id":"53219","pdf":"https://donutapp.mock/api/v1/petitions/pdf/?uid=53219","contact_by_phone":0,"customer_id":532,"createtime":"2019-01-18T10:20:41.966000Z","petition_id":"{PETITION_ID}"}]}';
-  const CONFIRMATION_RESPONSE = '[{"status":"success","message":"","uid":{UID},"confirmation_date":"2019-03-01T18:00:04.592107Z"}]';
 
   private $petitionID;
   private $activityTypeID;
@@ -33,7 +30,7 @@ class CRM_Donutapp_Processor_Greenpeace_PetitionTest extends CRM_Donutapp_Proces
 
     // mock authentication
     $mock = new MockHandler([
-      new Response(200, [], self::SUCCESSFUL_AUTH_RESPONSE),
+      new Response(200, [], file_get_contents(E::path('tests/fixtures/petition-responses/successful-auth-response.json'))),
     ]);
     $stack = HandlerStack::create($mock);
     CRM_Donutapp_API_Client::setupOauth2Client(['handler' => $stack]);
@@ -53,28 +50,6 @@ class CRM_Donutapp_Processor_Greenpeace_PetitionTest extends CRM_Donutapp_Proces
       'name'            => 'Petition',
     ]);
 
-    $this->callAPISuccess('CustomGroup', 'create', [
-      'title'                       => 'Source Contact Data',
-      'name'                        => 'source_contact_data',
-      'extends'                     => 'Activity',
-      'extends_entity_column_value' => $this->activityTypeID,
-    ]);
-
-    $this->callAPISuccess('CustomGroup', 'create', [
-      'title'                       => 'Petition Information',
-      'name'                        => 'petition_information',
-      'extends'                     => 'Activity',
-      'extends_entity_column_value' => $this->activityTypeID,
-    ]);
-
-    $this->callAPISuccess('CustomField', 'create', [
-      'custom_group_id' => 'petition_information',
-      'label'           => 'Dialoger',
-      'name'            => 'petition_dialoger',
-      'data_type'       => 'ContactReference',
-      'html_type'       => 'Autocomplete-Select',
-    ]);
-
     $this->petitionID = $this->callAPISuccess('Survey', 'create', [
       'title'            => 'Save the Whales',
       'activity_type_id' => $this->activityTypeID,
@@ -88,27 +63,27 @@ class CRM_Donutapp_Processor_Greenpeace_PetitionTest extends CRM_Donutapp_Proces
       new Response(
         200,
         ['Content-Type' => 'application/json'],
-        str_replace('{PETITION_ID}', $this->petitionID, self::PETITION_RESPONSE)
+        str_replace('{PETITION_ID}', $this->petitionID, file_get_contents(E::path('tests/fixtures/petition-responses/petition-response.json')))
       ),
       new Response(
         200,
         ['Content-Type' => 'application/json'],
-        str_replace('{UID}', '12345', self::CONFIRMATION_RESPONSE)
+        str_replace('"{UID}"', '12345', file_get_contents(E::path('tests/fixtures/petition-responses/confirmation-response.json')))
       ),
       new Response(
         200,
         ['Content-Type' => 'application/json'],
-        str_replace('{UID}', '76543', self::CONFIRMATION_RESPONSE)
+        str_replace('"{UID}"', '76543', file_get_contents(E::path('tests/fixtures/petition-responses/confirmation-response.json')))
       ),
       new Response(
         200,
         ['Content-Type' => 'application/json'],
-        str_replace('{UID}', '76542', self::CONFIRMATION_RESPONSE)
+        str_replace('"{UID}"', '76542', file_get_contents(E::path('tests/fixtures/petition-responses/confirmation-response.json')))
       ),
       new Response(
         200,
         ['Content-Type' => 'application/json'],
-        str_replace('{UID}', '53219', self::CONFIRMATION_RESPONSE)
+        str_replace('"{UID}"', '53219', file_get_contents(E::path('tests/fixtures/petition-responses/confirmation-response.json')))
       ),
     ]);
     $stack = HandlerStack::create($mock);

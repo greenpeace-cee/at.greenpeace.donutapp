@@ -311,6 +311,11 @@ class CRM_Donutapp_Processor_Greenpeace_DonationTest extends CRM_Donutapp_Proces
         [ 'Content-Type' => 'application/pdf' ],
         'Test PDF'
       ),
+      new Response(
+        200,
+        ['Content-Type' => 'application/json'],
+        str_replace('"{UID}"', '543210', file_get_contents(E::path('tests/fixtures/donation-responses/confirmation-response.json')))
+      ),
     ]);
 
     CRM_Donutapp_API_Client::setupClient([ 'handler' => HandlerStack::create($mock) ]);
@@ -325,6 +330,11 @@ class CRM_Donutapp_Processor_Greenpeace_DonationTest extends CRM_Donutapp_Proces
     ]);
 
     $processor->process();
+
+    $this->assertFalse(
+      $this->getLastImportError(),
+      'Should not create any import error activities'
+    );
 
     // Assert the contact has been created
     $contact = Api4\Contact::get(FALSE)

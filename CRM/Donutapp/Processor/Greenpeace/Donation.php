@@ -1,6 +1,7 @@
 <?php
 
 use Civi\Api4;
+use Civi\Api4\Contact;
 
 class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_Greenpeace_Base {
 
@@ -96,15 +97,22 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
    * @throws \CiviCRM_API3_Exception
    * @throws \GuzzleHttp\Exception\GuzzleException
    * @throws \CRM_Donutapp_Processor_Exception
+   * @throws \Exception
    */
   protected function processDonation(CRM_Donutapp_API_Donation $donation) {
     if (!$this->isDeferrable($donation)) {
 
       $contact_id = $this->createContact($donation);
-      $membership_id = $this->createContract($donation, $contact_id);
+      $contract_result = $this->createContract($donation, $contact_id);
+      if (!empty($contract_result['contribution_id'])) {
+        $activityType = 'Contribution';
+      } else if (!empty($contract_result['membership_id'])) {
+        $activityType = 'Contract_Signed';
+      } else {
+        throw new CRM_Donutapp_Processor_Exception("Donation did not result in creation of contribution or membership.");
+      }
 
       $this->addToNewsletterGroup($donation, $contact_id);
-
       $interest_group = $donation->interest_group;
       if (!empty($interest_group)) {
         $this->addGroup($contact_id, $interest_group);
@@ -115,19 +123,14 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
         $this->addGroup($contact_id, $topic_group);
       }
 
-      $this->createWebshopOrder($donation, $contact_id, $membership_id);
-
-      if (empty($membership_id)) {
-        $this->processWelcomeEmail($donation, $contact_id);
-      } else {
-        $parent_activity_id = civicrm_api3('Activity', 'getvalue', [
-          'return'           => 'id',
-          'activity_type_id' => 'Contract_Signed',
-          'source_record_id' => $membership_id,
-        ]);
-
-        $this->processWelcomeEmail($donation, $contact_id, $parent_activity_id);
-      }
+      $this->createWebshopOrder($donation, $contact_id, $contract_result);
+      // get corresponding contribution or contract signed activity
+      $parent_activity_id = civicrm_api3('Activity', 'getvalue', [
+        'return'           => 'id',
+        'activity_type_id' => $activityType,
+        'source_record_id' => $contract_result['membership_id'] ?? $contract_result['contribution_id'],
+      ]);
+      $this->processWelcomeEmail($donation, $contact_id, $parent_activity_id);
 
       // Should we confirm retrieval?
       if ($this->params['confirm']) {
@@ -186,14 +189,14 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
   }
 
   /**
-   * Add a membership
+   * Add a membership or contribution
    *
    * @param CRM_Donutapp_API_Donation $donation
    * @param $contactId
    *
-   * @return mixed
+   * @return array
    * @throws \CRM_Donutapp_Processor_Exception
-   * @throws \CiviCRM_API3_Exception
+   * @throws \CiviCRM_API3_Exception|\DateInvalidTimeZoneException
    */
   protected function createContract(CRM_Donutapp_API_Donation $donation, $contactId) {
     // Payment frequency & amount
@@ -270,7 +273,7 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
         ->addWhere('id', '=', $contribution_id)
         ->execute();
 
-      return NULL;
+      return ['contribution_id' => $contribution_id];
     }
 
     // round frequency amount to two decimals digits
@@ -317,7 +320,7 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
     $membership = civicrm_api3('Contract', 'create', $contract_data);
     $this->storeContractFile($donation->person_id . '.pdf', $donation->pdf_content, $membership['id']);
 
-    return $membership['id'];
+    return ['membership_id' => $membership['id']];
   }
 
   /**
@@ -378,16 +381,16 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
    *
    * @param \CRM_Donutapp_API_Donation $donation
    * @param $contactId
-   * @param $membershipId
+   * @param array $contractResult
    *
    * @return array|bool new webshop order activity
    * @throws \CiviCRM_API3_Exception
    */
-  protected function createWebshopOrder(CRM_Donutapp_API_Donation $donation, $contactId, $membershipId) {
+  protected function createWebshopOrder(CRM_Donutapp_API_Donation $donation, $contactId, array $contractResult) {
     $order_type = $donation->order_type;
     $shirt_type = $donation->shirt_type;
     $shirt_size = $donation->shirt_size;
-    $membership_type = $donation->membership_type;
+    $membership_type = $donation->membership_type ?? NULL;
     if ((empty($shirt_type) || empty($shirt_size)) && empty($order_type)) {
       return FALSE;
     }
@@ -414,7 +417,9 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
       'custom_' . CRM_Core_BAO_CustomField::getCustomFieldID('shirt_size', 'webshop_information')  =>
         $shirt_size,
       'custom_' . CRM_Core_BAO_CustomField::getCustomFieldID('linked_membership', 'webshop_information') =>
-        $membershipId,
+        $contractResult['membership_id'] ?? NULL,
+      'custom_' . CRM_Core_BAO_CustomField::getCustomFieldID('linked_contribution', 'webshop_information') =>
+        $contractResult['contribution_id'] ?? NULL,
     ];
     return civicrm_api3('Activity', 'create', $params);
   }
@@ -433,6 +438,11 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
     if (empty($email) || $donation->newsletter_optin != '1') {
       return FALSE;
     }
+    Contact::update(FALSE)
+      ->addValue('do_not_email', FALSE)
+      ->addValue('is_opt_out', FALSE)
+      ->addWhere('id', '=', $contactId)
+      ->execute();
     $this->addGroup($contactId, 'Community NL');
   }
 

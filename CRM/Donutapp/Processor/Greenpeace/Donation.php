@@ -234,6 +234,10 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
     // Channel
     $channel = str_replace('Kontaktart:', '', $donation->membership_channel);
 
+    // Join date
+    $signature_date = new DateTime($donation->createtime);
+    $signature_date->setTimezone(new DateTimeZone(date_default_timezone_get()));
+
     if ($frequency < 1) {
       // The contract_number (person_id) of the contribution must be unique
       $contract_number = $donation->person_id;
@@ -257,6 +261,7 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
         'iban'              => $iban,
         'receive_date'      => $contract_start_date->format('Y-m-d'),
         'type'              => 'OOFF',
+        'date'              => $signature_date->format('YmdHis')
       ]);
 
       $contribution_id = reset($sepa_mandate_result['values'])['entity_id'];
@@ -287,10 +292,6 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
         "Contract annual amount '$annualAmount' not divisible by frequency $frequency."
       );
     }
-
-    // Join date
-    $signature_date = new DateTime($donation->createtime);
-    $signature_date->setTimezone(new DateTimeZone(date_default_timezone_get()));
 
     // Create membership
     // @TODO: use signature_date for contract_signed activity

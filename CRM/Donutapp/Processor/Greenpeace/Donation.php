@@ -1,5 +1,8 @@
 <?php
 
+use Civi\Api4;
+use Civi\Api4\Contact;
+
 class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_Greenpeace_Base {
 
   /**
@@ -94,16 +97,22 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
    * @throws \CiviCRM_API3_Exception
    * @throws \GuzzleHttp\Exception\GuzzleException
    * @throws \CRM_Donutapp_Processor_Exception
+   * @throws \Exception
    */
   protected function processDonation(CRM_Donutapp_API_Donation $donation) {
     if (!$this->isDeferrable($donation)) {
 
       $contact_id = $this->createContact($donation);
-      $membership_id = $this->createContract($donation, $contact_id);
-      $this->createWebshopOrder($donation, $contact_id, $membership_id);
+      $contract_result = $this->createContract($donation, $contact_id);
+      if (!empty($contract_result['contribution_id'])) {
+        $activityType = 'Contribution';
+      } else if (!empty($contract_result['membership_id'])) {
+        $activityType = 'Contract_Signed';
+      } else {
+        throw new CRM_Donutapp_Processor_Exception("Donation did not result in creation of contribution or membership.");
+      }
 
       $this->addToNewsletterGroup($donation, $contact_id);
-
       $interest_group = $donation->interest_group;
       if (!empty($interest_group)) {
         $this->addGroup($contact_id, $interest_group);
@@ -114,12 +123,15 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
         $this->addGroup($contact_id, $topic_group);
       }
 
+      $this->createWebshopOrder($donation, $contact_id, $contract_result);
+      // get corresponding contribution or contract signed activity
       $parent_activity_id = civicrm_api3('Activity', 'getvalue', [
         'return'           => 'id',
-        'activity_type_id' => 'Contract_Signed',
-        'source_record_id' => $membership_id,
+        'activity_type_id' => $activityType,
+        'source_record_id' => $contract_result['membership_id'] ?? $contract_result['contribution_id'],
       ]);
       $this->processWelcomeEmail($donation, $contact_id, $parent_activity_id);
+
       // Should we confirm retrieval?
       if ($this->params['confirm']) {
         $donation->confirm();
@@ -177,36 +189,21 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
   }
 
   /**
-   * Add a membership
+   * Add a membership or contribution
    *
    * @param CRM_Donutapp_API_Donation $donation
    * @param $contactId
    *
-   * @return mixed
+   * @return array
    * @throws \CRM_Donutapp_Processor_Exception
-   * @throws \CiviCRM_API3_Exception
+   * @throws \CiviCRM_API3_Exception|\DateInvalidTimeZoneException
    */
   protected function createContract(CRM_Donutapp_API_Donation $donation, $contactId) {
-    if ($donation->direct_debit_interval == '0') {
-      throw new CRM_Donutapp_Processor_Exception('One-off payments are not supported');
-    }
-
     // Payment frequency & amount
     $annualAmount = (float) str_replace(',', '.', $donation->donation_amount_annual);
     $frequency = (int) $donation->direct_debit_interval;
-    // round frequency amount to two decimals digits
-    $amount = (float) round($annualAmount / $frequency, 2);
-    $annualAmountCalculated = (float) $amount * $frequency;
 
-    // ensure multiplying frequency amount with frequency interval matches the annual amount
-    // strval() helps us avoid floating point precision issues
-    if (strval($annualAmountCalculated) !== strval($annualAmount)) {
-      throw new CRM_Donutapp_Processor_Exception(
-        "Contract annual amount '$annualAmount' not divisible by frequency $frequency."
-      );
-    }
-
-    // Start/join date
+    // Start date
     $now = new DateTime();
     $contract_start_date = DateTime::createFromFormat('Y-m-d', $donation->contract_start_date);
 
@@ -216,9 +213,6 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
         "Value must not be in the future"
       );
     }
-
-    $signature_date = new DateTime($donation->createtime);
-    $signature_date->setTimezone(new DateTimeZone(date_default_timezone_get()));
 
     // Bank accounts
     $iban = strtoupper(str_replace(' ', '', $donation->bank_account_iban));
@@ -231,14 +225,73 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
     $to_ba = CRM_Contract_BankingLogic::getCreditorBankAccount();
 
     // Dialoger
-    $dialoger = $this->findOrCreateDialoger($donation);
+    $dialoger_id = $this->findOrCreateDialoger($donation);
 
-    if (is_null($dialoger)) {
+    if (is_null($dialoger_id)) {
       throw new CRM_Donutapp_Processor_Exception('Could not create dialoger.');
     }
 
     // Channel
     $channel = str_replace('Kontaktart:', '', $donation->membership_channel);
+
+    // Join date
+    $signature_date = new DateTime($donation->createtime);
+    $signature_date->setTimezone(new DateTimeZone(date_default_timezone_get()));
+
+    if ($frequency < 1) {
+      // The contract_number (person_id) of the contribution must be unique
+      $contract_number = $donation->person_id;
+
+      $contract_number_count = Api4\Contribution::get(FALSE)
+        ->selectRowCount()
+        ->addWhere('contribution_information.contract_number', '=', $contract_number)
+        ->execute()
+        ->rowCount;
+
+      if ($contract_number_count > 0) {
+        throw new CRM_Donutapp_Processor_Exception("A contribution with contract_number '{$contract_number}' already exists.");
+      }
+
+      // Create a SEPA mandate for a one-off donation
+      $sepa_mandate_result = civicrm_api3('SepaMandate', 'createfull', [
+        'amount'            => $annualAmount,
+        'campaign_id'       => $this->getCampaign($donation),
+        'contact_id'        => $contactId,
+        'financial_type_id' => self::getFinancialTypeId('Donation'),
+        'iban'              => $iban,
+        'receive_date'      => $contract_start_date->format('Y-m-d'),
+        'type'              => 'OOFF',
+        'date'              => $signature_date->format('YmdHis')
+      ]);
+
+      $contribution_id = reset($sepa_mandate_result['values'])['entity_id'];
+
+      // Store the contribution file
+      $file = self::storeContributionFile("{$donation->person_id}.pdf", $donation->pdf_content, $contribution_id);
+
+      // Set custom fields for the associated contribution
+      Api4\Contribution::update(FALSE)
+        ->addValue('contribution_information.channel', $channel)
+        ->addValue('contribution_information.contract_number', $contract_number)
+        ->addValue('contribution_information.contribution_file', $file['id'])
+        ->addValue('contribution_information.dialoger', $dialoger_id)
+        ->addWhere('id', '=', $contribution_id)
+        ->execute();
+
+      return ['contribution_id' => $contribution_id];
+    }
+
+    // round frequency amount to two decimals digits
+    $amount = (float) round($annualAmount / $frequency, 2);
+    $annualAmountCalculated = (float) $amount * $frequency;
+
+    // ensure multiplying frequency amount with frequency interval matches the annual amount
+    // strval() helps us avoid floating point precision issues
+    if (strval($annualAmountCalculated) !== strval($annualAmount)) {
+      throw new CRM_Donutapp_Processor_Exception(
+        "Contract annual amount '$annualAmount' not divisible by frequency $frequency."
+      );
+    }
 
     // Create membership
     // @TODO: use signature_date for contract_signed activity
@@ -250,7 +303,7 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
       'campaign_id'                            => $this->getCampaign($donation),
       'membership_general.membership_channel'  => $channel,
       'membership_general.membership_contract' => $donation->person_id,
-      'membership_general.membership_dialoger' => $dialoger,
+      'membership_general.membership_dialoger' => $dialoger_id,
       'membership_payment.from_ba'             => $from_ba,
       'membership_payment.to_ba'               => $to_ba,
       'payment_method.adapter'                 => 'sepa_mandate',
@@ -258,7 +311,7 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
       'payment_method.campaign_id'             => $this->getCampaign($donation),
       'payment_method.contact_id'              => $contactId,
       'payment_method.currency'                => 'EUR',
-      'payment_method.financial_type_id'       => 2, // Member Dues
+      'payment_method.financial_type_id'       => self::getFinancialTypeId('Member Dues'),
       'payment_method.frequency_interval'      => 12 / $frequency,
       'payment_method.frequency_unit'          => 'month',
       'payment_method.iban'                    => $iban,
@@ -268,7 +321,7 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
     $membership = civicrm_api3('Contract', 'create', $contract_data);
     $this->storeContractFile($donation->person_id . '.pdf', $donation->pdf_content, $membership['id']);
 
-    return $membership['id'];
+    return ['membership_id' => $membership['id']];
   }
 
   /**
@@ -302,20 +355,43 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
   }
 
   /**
+   * Store the contribution PDF as a File entity
+   *
+   * @param $file_name
+   * @param $content
+   * @param $contribution_id
+   *
+   * @returns int
+   */
+  private static function storeContributionFile($file_name, $content, $contribution_id) {
+    $config = CRM_Core_Config::singleton();
+    $uri = CRM_Utils_File::makeFileName($file_name);
+    $path = $config->customFileUploadDir . DIRECTORY_SEPARATOR . $uri;
+
+    file_put_contents($path, $content);
+
+    return Api4\File::create(FALSE)
+      ->addValue('mime_type', 'application/pdf')
+      ->addValue('uri', $uri)
+      ->execute()
+      ->first();
+  }
+
+  /**
    * Create a webshop order
    *
    * @param \CRM_Donutapp_API_Donation $donation
    * @param $contactId
-   * @param $membershipId
+   * @param array $contractResult
    *
    * @return array|bool new webshop order activity
    * @throws \CiviCRM_API3_Exception
    */
-  protected function createWebshopOrder(CRM_Donutapp_API_Donation $donation, $contactId, $membershipId) {
+  protected function createWebshopOrder(CRM_Donutapp_API_Donation $donation, $contactId, array $contractResult) {
     $order_type = $donation->order_type;
     $shirt_type = $donation->shirt_type;
     $shirt_size = $donation->shirt_size;
-    $membership_type = $donation->membership_type;
+    $membership_type = $donation->membership_type ?? NULL;
     if ((empty($shirt_type) || empty($shirt_size)) && empty($order_type)) {
       return FALSE;
     }
@@ -342,7 +418,9 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
       'custom_' . CRM_Core_BAO_CustomField::getCustomFieldID('shirt_size', 'webshop_information')  =>
         $shirt_size,
       'custom_' . CRM_Core_BAO_CustomField::getCustomFieldID('linked_membership', 'webshop_information') =>
-        $membershipId,
+        $contractResult['membership_id'] ?? NULL,
+      'custom_' . CRM_Core_BAO_CustomField::getCustomFieldID('linked_contribution', 'webshop_information') =>
+        $contractResult['contribution_id'] ?? NULL,
     ];
     return civicrm_api3('Activity', 'create', $params);
   }
@@ -361,6 +439,11 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
     if (empty($email) || $donation->newsletter_optin != '1') {
       return FALSE;
     }
+    Contact::update(FALSE)
+      ->addValue('do_not_email', FALSE)
+      ->addValue('is_opt_out', FALSE)
+      ->addWhere('id', '=', $contactId)
+      ->execute();
     $this->addGroup($contactId, 'Community NL');
   }
 
@@ -423,6 +506,16 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
    */
   protected function getEmailSubject(CRM_Donutapp_API_Entity $entity) {
     return 'Wie war Ihr Gespräch?';
+  }
+
+  private static function getFinancialTypeId($name) {
+    $financial_type = Api4\FinancialType::get(FALSE)
+      ->addSelect('id')
+      ->addWhere('name', '=', $name)
+      ->execute()
+      ->first();
+
+    return $financial_type['id'];
   }
 
 }

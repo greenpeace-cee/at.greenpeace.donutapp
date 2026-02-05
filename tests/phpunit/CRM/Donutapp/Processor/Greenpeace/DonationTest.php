@@ -1,5 +1,7 @@
 <?php
 
+use Civi\Api4;
+use CRM_Donutapp_ExtensionUtil as E;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
@@ -14,11 +16,6 @@ use GuzzleHttp\Psr7\Response;
  */
 class CRM_Donutapp_Processor_Greenpeace_DonationTest extends CRM_Donutapp_Processor_Greenpeace_BaseTest {
 
-  const SUCCESSFUL_AUTH_RESPONSE = '{"access_token": "secret", "token_type": "Bearer", "expires_in": 172800, "scope": "read write"}';
-  const DONATION_RESPONSE = '{"count":3,"total_pages":1,"next":null,"previous":null,"results":[{"payment_method":"donut-sepa","on_hold_comment":"","fundraiser_code":"gpat-1337","raisenow_epp_transaction_id":null,"change_note_private":"","bank_account_bic":"","membership_channel":"Kontaktart:F2F","welcome_email_status":"sent","donor_first_name":"Jon","campaign_type":null,"bank_account_was_validated":false,"donor_occupation":4,"donor_phone":null,"donor_company_name":null,"special2":"","special1":"","location":"","donor_city":"Castle Black","donor_last_name":"Snow","organisation_id":null,"donor_salutation":5,"donor_email":"snow@thewatch.example.org","bank_account_bank_name":"","fundraiser_name":"Stark, Benjen","donor_date_of_birth":"1961-11-14","donor_country":"AT","donor_house_number":"1","bank_card_checked":null,"bank_account_holder":"Jon Snow","donor_mobile":"+43664123456","donor_street":"Main Street","donation_amount_annual":"180,00","uploadtime":"2019-10-26T14:56:25.535888Z","uid":12345,"campaign_id":260,"contact_by_email":0,"contract_start_date":"2019-10-26","change_note_public":"","on_hold":false,"donor_sex":null,"interest_group":"Tierfreunde","shirt_type":"","comments":"","person_id":"GT123456","customer_id":158,"direct_debit_interval":12,"membership_type":"Landwirtschaft","contact_by_phone":0,"topic_group":"Wald","agency_id":null,"donor_age_in_years":57,"donor_zip_code":"1234","bank_account_iban":"AT483200000012345864","donor_academic_title":null,"shirt_size":"","pdf":"https://donutapp.mock/api/v1/donations/pdf/?uid=12345","campaign_type2":null,"createtime":"2019-10-29T16:30:24.227000Z"},{"payment_method":"donut-sepa","fundraiser_code":"gpat-420","raisenow_epp_transaction_id":null,"change_note_private":"","bank_account_bic":"","membership_channel":"Kontaktart:F2F","welcome_email_status":"sent","donor_first_name":"Jane","campaign_type":null,"bank_account_was_validated":false,"donor_occupation":4,"donor_phone":null,"donor_company_name":null,"special2":"","special1":"","location":"","donor_city":null,"donor_last_name":"Doe","organisation_id":null,"donor_salutation":2,"donor_email":"jadoe@example.org","bank_account_bank_name":"","fundraiser_name":"Some, Person","donor_date_of_birth":"1960-11-14","donor_country":null,"donor_house_number":null,"bank_card_checked":null,"bank_account_holder":"Jane Doe","donor_mobile":"+43660123456","donor_street":null,"donation_amount_annual":"150,00","uploadtime":"2019-10-26T14:56:25.535888Z","uid":54321,"campaign_id":260,"contact_by_email":0,"contract_start_date":"2019-10-26","change_note_public":"","status":"none","donor_sex":1,"interest_group":"Tierfreunde","shirt_type":"","comments":"","person_id":"GT123457","customer_id":158,"direct_debit_interval":12,"membership_type":"Landwirtschaft","contact_by_phone":0,"topic_group":"Wald","agency_id":null,"donor_age_in_years":57,"donor_zip_code":null,"bank_account_iban":"DE75512108001245126199","donor_academic_title":null,"shirt_size":"","external_campaign_id":{EXTERNAL_CAMPAIGN_ID},"newsletter_optin":"1","pdf":"https://donutapp.mock/api/v1/donations/pdf/?uid=54321","campaign_type2":null,"createtime":"2019-10-29T16:30:24.227000Z"},{"payment_method":"donut-sepa","on_hold_comment":"","fundraiser_code":"gpat-1337","raisenow_epp_transaction_id":null,"change_note_private":"","bank_account_bic":"","membership_channel":"Kontaktart:F2F","welcome_email_status":"sent","donor_first_name":"Wendy","campaign_type":null,"bank_account_was_validated":false,"donor_occupation":4,"donor_phone":null,"donor_company_name":null,"special2":"","special1":"","location":"","donor_city":null,"donor_last_name":"Doe","organisation_id":null,"donor_salutation":2,"donor_email":"wedoe@example.org","bank_account_bank_name":"","fundraiser_name":"Some, Person","donor_date_of_birth":"1960-11-14","donor_country":null,"donor_house_number":null,"bank_card_checked":null,"bank_account_holder":"Wendy Doe","donor_mobile":"+43660123451","donor_street":null,"donation_amount_annual":"150,00","uploadtime":"2019-10-26T14:56:25.535888Z","uid":543210,"campaign_id":261,"contact_by_email":0,"contract_start_date":"2019-10-26","change_note_public":"","on_hold":false,"donor_sex":1,"interest_group":"Tierfreunde","shirt_type":"","comments":"","person_id":"GT123458","customer_id":158,"direct_debit_interval":12,"membership_type":"Landwirtschaft","contact_by_phone":0,"topic_group":"Wald","agency_id":null,"donor_age_in_years":57,"donor_zip_code":null,"bank_account_iban":"DE75512108001245126199","donor_academic_title":null,"shirt_size":"","newsletter_optin":"1","pdf":"https://donutapp.mock/api/v1/donations/pdf/?uid=543210","campaign_type2":null,"createtime":"2019-10-29T16:30:24.227000Z"}]}';
-  const DONATION_RESPONSE_JOIN_DATE = '{"count":1,"total_pages":1,"next":null,"previous":null,"results":[{"payment_method":"donut-sepa","on_hold_comment":"","fundraiser_code":"gpat-1337","raisenow_epp_transaction_id":null,"change_note_private":"","bank_account_bic":"","membership_channel":"Kontaktart:F2F","welcome_email_status":"sent","donor_first_name":"Jon","campaign_type":null,"bank_account_was_validated":false,"donor_occupation":4,"donor_phone":null,"donor_company_name":null,"special2":"","special1":"","location":"","donor_city":"Castle Black","donor_last_name":"Snow","organisation_id":null,"donor_salutation":2,"donor_email":"snow@thewatch.example.org","bank_account_bank_name":"","fundraiser_name":"Stark, Benjen","donor_date_of_birth":"1961-11-14","donor_country":"AT","donor_house_number":"1","bank_card_checked":null,"bank_account_holder":"Jon Snow","donor_mobile":"+43664123456","donor_street":"Main Street","donation_amount_annual":"180,00","uploadtime":"2019-10-26T14:56:25.535888Z","uid":55441,"campaign_id":260,"contact_by_email":0,"contract_start_date":"2099-10-26","change_note_public":"","on_hold":false,"donor_sex":2,"interest_group":"Tierfreunde","shirt_type":"","comments":"","person_id":"GT123459","customer_id":158,"direct_debit_interval":12,"membership_type":"Landwirtschaft","contact_by_phone":0,"topic_group":"Wald","agency_id":null,"donor_age_in_years":57,"donor_zip_code":"1234","bank_account_iban":"AT483200000012345864","donor_academic_title":null,"shirt_size":"","pdf":"https://donutapp.mock/api/v1/donations/pdf/?uid=55441","campaign_type2":null,"createtime":"2019-10-29T16:30:24.227000Z"}]}';
-  const CONFIRMATION_RESPONSE = '[{"status":"success","message":"","uid":{UID},"confirmation_date":"2019-10-30T11:25:12.335209Z"}]';
-
   private $altCampaignId;
   private $mappedCampaignId;
   private $contactId;
@@ -31,6 +28,7 @@ class CRM_Donutapp_Processor_Greenpeace_DonationTest extends CRM_Donutapp_Proces
       ->install('org.project60.banking')
       ->install('de.systopia.contract')
       ->install('de.systopia.identitytracker')
+      ->install('greenpeace_contribute')
       ->apply(TRUE);
   }
 
@@ -61,7 +59,7 @@ class CRM_Donutapp_Processor_Greenpeace_DonationTest extends CRM_Donutapp_Proces
     parent::setUp();
     // mock authentication
     $mock = new MockHandler([
-      new Response(200, [], self::SUCCESSFUL_AUTH_RESPONSE),
+      new Response(200, [], file_get_contents(E::path('tests/fixtures/donation-responses/successful-auth-response.json'))),
     ]);
     $stack = HandlerStack::create($mock);
     CRM_Donutapp_API_Client::setupOauth2Client(['handler' => $stack]);
@@ -75,9 +73,9 @@ class CRM_Donutapp_Processor_Greenpeace_DonationTest extends CRM_Donutapp_Proces
         200,
         ['Content-Type' => 'application/json'],
         str_replace(
-          '{EXTERNAL_CAMPAIGN_ID}',
+          '"{EXTERNAL_CAMPAIGN_ID}"',
           $this->altCampaignId,
-          self::DONATION_RESPONSE
+          file_get_contents(E::path('tests/fixtures/donation-responses/multiple-donations.json'))
         )
       ),
       new Response(
@@ -88,7 +86,7 @@ class CRM_Donutapp_Processor_Greenpeace_DonationTest extends CRM_Donutapp_Proces
       new Response(
         200,
         ['Content-Type' => 'application/json'],
-        str_replace('{UID}', '12345', self::CONFIRMATION_RESPONSE)
+        str_replace('"{UID}"', '12345', file_get_contents(E::path('tests/fixtures/donation-responses/confirmation-response.json')))
       ),
       new Response(
         200,
@@ -98,7 +96,7 @@ class CRM_Donutapp_Processor_Greenpeace_DonationTest extends CRM_Donutapp_Proces
       new Response(
         200,
         ['Content-Type' => 'application/json'],
-        str_replace('{UID}', '54321', self::CONFIRMATION_RESPONSE)
+        str_replace('"{UID}"', '54321', file_get_contents(E::path('tests/fixtures/donation-responses/confirmation-response.json')))
       ),
       new Response(
         200,
@@ -108,7 +106,7 @@ class CRM_Donutapp_Processor_Greenpeace_DonationTest extends CRM_Donutapp_Proces
       new Response(
         200,
         ['Content-Type' => 'application/json'],
-        str_replace('{UID}', '543210', self::CONFIRMATION_RESPONSE)
+        str_replace('"{UID}"', '543210', file_get_contents(E::path('tests/fixtures/donation-responses/confirmation-response.json')))
       ),
     ]);
     $stack = HandlerStack::create($mock);
@@ -269,7 +267,7 @@ class CRM_Donutapp_Processor_Greenpeace_DonationTest extends CRM_Donutapp_Proces
       new Response(
         200,
         ['Content-Type' => 'application/json'],
-        self::DONATION_RESPONSE_JOIN_DATE
+        file_get_contents(E::path('tests/fixtures/donation-responses/donation-with-future-start-date.json'))
       ),
       new Response(
         200,
@@ -279,7 +277,7 @@ class CRM_Donutapp_Processor_Greenpeace_DonationTest extends CRM_Donutapp_Proces
       new Response(
         200,
         ['Content-Type' => 'application/json'],
-        str_replace('{UID}', '55441', self::CONFIRMATION_RESPONSE)
+        str_replace('"{UID}"', '55441', file_get_contents(E::path('tests/fixtures/donation-responses/confirmation-response.json')))
       ),
     ]);
     $stack = HandlerStack::create($mock);
@@ -298,6 +296,151 @@ class CRM_Donutapp_Processor_Greenpeace_DonationTest extends CRM_Donutapp_Proces
       "/Invalid contract_start_date '2099-10-26'. Value must not be in the future/",
       $error['details']
     );
+  }
+
+  public function testOneOffDonations() {
+    // Define mock responses
+    $mock = new MockHandler([
+      new Response(
+        200,
+        [ 'Content-Type' => 'application/json' ],
+        file_get_contents(E::path('tests/fixtures/donation-responses/one-off-donation.json'))
+      ),
+      new Response(
+        200,
+        [ 'Content-Type' => 'application/pdf' ],
+        'Test PDF'
+      ),
+      new Response(
+        200,
+        ['Content-Type' => 'application/json'],
+        str_replace('"{UID}"', '543210', file_get_contents(E::path('tests/fixtures/donation-responses/confirmation-response.json')))
+      ),
+    ]);
+
+    CRM_Donutapp_API_Client::setupClient([ 'handler' => HandlerStack::create($mock) ]);
+
+    // Process incoming donations
+    $processor = new CRM_Donutapp_Processor_Greenpeace_Donation([
+      'client_id'     => 'client-id',
+      'client_secret' => 'client-secret',
+      'campaign_id'   => $this->campaignId,
+      'confirm'       => TRUE,
+      'limit'         => 100,
+    ]);
+
+    $processor->process();
+
+    $this->assertFalse(
+      $this->getLastImportError(),
+      'Should not create any import error activities'
+    );
+
+    // Assert the contact has been created
+    $contact = Api4\Contact::get(FALSE)
+      ->addWhere('first_name', '=', 'Wendy')
+      ->addWhere('last_name',  '=', 'Doe')
+      ->addWhere('birth_date', '=', '1960-11-14')
+      ->setLimit(1)
+      ->execute()
+      ->first();
+
+    $this->assertNotEmpty($contact);
+
+    // Assert a SEPA mandate has been created
+    $sepa_mandate = Api4\SepaMandate::get(FALSE)
+      ->addSelect(
+        'entity_id',
+        'entity_table',
+        'iban',
+        'status',
+        'type'
+      )
+      ->addWhere('contact_id', '=', $contact['id'])
+      ->execute()
+      ->first();
+
+    $this->assertEquals([
+      'entity_id'    => $sepa_mandate['entity_id'],
+      'entity_table' => 'civicrm_contribution',
+      'iban'         => 'DE75512108001245126199',
+      'id'           => $sepa_mandate['id'],
+      'status'       => 'OOFF',
+      'type'         => 'OOFF',
+    ], $sepa_mandate);
+
+    // Assert dialoger contact has been created
+    $dialoger = Api4\Contact::get(FALSE)
+      ->addWhere('contact_type', '=', 'Individual')
+      ->addWhere('contact_sub_type', '=', 'Dialoger')
+      ->addWhere('first_name', '=', 'Person')
+      ->addWhere('last_name', '=', 'Some')
+      ->setLimit(1)
+      ->execute()
+      ->first();
+
+    $this->assertNotEmpty($dialoger);
+
+    // Assert a contribution file has been created
+    $file = Api4\File::get(FALSE)
+      ->addWhere('mime_type', '=', 'application/pdf')
+      ->addWhere('uri', 'LIKE', 'GT654321_%.pdf')
+      ->execute()
+      ->first();
+
+    $this->assertNotEmpty($file);
+
+    // Assert a Contribution has been created
+    $contribution = Api4\Contribution::get(FALSE)
+      ->addSelect(
+        'contribution_information.channel',
+        'contribution_information.contract_number',
+        'contribution_information.contribution_file',
+        'contribution_information.dialoger',
+        'financial_type_id.name',
+        'receive_date',
+        'total_amount'
+      )
+      ->addWhere('id', '=', $sepa_mandate['entity_id'])
+      ->execute()
+      ->first();
+
+    $this->assertEquals([
+      'contribution_information.channel'           => 'F2F',
+      'contribution_information.contract_number'   => 'GT654321',
+      'contribution_information.contribution_file' => $file['id'],
+      'contribution_information.dialoger'          => $dialoger['id'],
+      'financial_type_id.name'                     => 'Donation',
+      'id'                                         => $contribution['id'],
+      'receive_date'                               => '2019-10-26 00:00:00',
+      'total_amount'                               => 150.0,
+    ], $contribution);
+
+    // Assert the contact has been added to the expected Groups
+    $group_contacts = (array) Api4\GroupContact::get(FALSE)
+      ->addSelect('group_id:label')
+      ->addWhere('contact_id.id', '=', $contact['id'])
+      ->addOrderBy('group_id:label', 'ASC')
+      ->execute();
+
+    $group_labels = array_map(fn ($group) => $group['group_id:label'], $group_contacts);
+
+    $this->assertEquals([
+      'Community NL',
+      'Tierfreunde',
+      'Wald',
+    ], $group_labels);
+
+    // Assert an Activity for the welcome email has been created
+    $welcome_email_activity = Api4\Activity::get(FALSE)
+      ->addSelect('subject')
+      ->addWhere('activity_type_id:name', '=', 'Online_Mailing')
+      ->addWhere('target_contact_id', '=', $contact['id'])
+      ->execute()
+      ->first();
+
+    $this->assertNotEmpty($welcome_email_activity);
+    $this->assertEquals('Wie war Ihr Gespräch?', $welcome_email_activity['subject']);
   }
 
 }

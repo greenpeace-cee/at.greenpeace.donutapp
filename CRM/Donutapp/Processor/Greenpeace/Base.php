@@ -53,10 +53,15 @@ abstract class CRM_Donutapp_Processor_Greenpeace_Base extends CRM_Donutapp_Proce
    * @throws \CiviCRM_API3_Exception
    */
   protected function findOrCreateDialoger($entity) {
-    if (!preg_match('/^(\w+)\-(\d+)$/', $entity->fundraiser_code, $match)) {
+    // accept something like gpat-1234 or gpat-sf1234 or dda-1234
+    if (!preg_match('/^(\w+)-(sf)?(\d+)$/i', $entity->fundraiser_code, $match)) {
       return NULL;
     }
-    $dialoger_id = str_replace('gpat-', '', $entity->fundraiser_code);
+    // gpat-sf1234 is a special case; we want to pretend it is the same as gpat-1234, so get rid of the "sf" prefix
+    $dialoger_id = preg_replace('/^(\w+)-(sf)?(\d+)$/i', '$1-$3', $entity->fundraiser_code);
+    // gpat is used exclusively for inhouse DD. we store these without a prefix (i.e., gpat-1234 becomes dialoger ID 1234),
+    // and keep the prefix for everyone else (dda-1234 becomes dda-1234)
+    $dialoger_id = str_replace('gpat-', '', $dialoger_id);
     $dialoger = CRM_Donutapp_Util::getContactIdByDialogerId($dialoger_id);
     if (!empty($dialoger)) {
       return $dialoger;

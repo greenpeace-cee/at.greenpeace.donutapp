@@ -34,6 +34,8 @@ class CRM_Donutapp_API_Workshift {
 
       $fundraiser = self::getFundraiser($fr_shift['fundraiser']);
       $dialoger = self::getOrCreateDialoger($fundraiser);
+      // only import if this is a non-ignored dialoger
+      if (is_null($dialoger)) continue;
       $workshift = self::getWorkshift($fr_shift['work_shift']);
 
       self::importFundraiserWorkshift([
@@ -117,6 +119,10 @@ class CRM_Donutapp_API_Workshift {
   }
 
   private static function getOrCreateDialoger($fundraiser) {
+    // ignore dialogers prefixed with "sf"
+    if (preg_match('/^sf/i', $fundraiser['fundraiser_code'])) {
+      return NULL;
+    }
     $dialoger = CRM_Donutapp_Util::getContactIdByDialogerId($fundraiser['fundraiser_code']);
     if (!empty($dialoger)) {
       $contact = Contact::get(FALSE)

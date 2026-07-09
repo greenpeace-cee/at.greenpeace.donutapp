@@ -118,11 +118,6 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
         $this->addGroup($contact_id, $interest_group);
       }
 
-      $topic_group = $donation->topic_group;
-      if (!empty($topic_group)) {
-        $this->addGroup($contact_id, $topic_group);
-      }
-
       $this->createWebshopOrder($donation, $contact_id, $contract_result);
       // get corresponding contribution or contract signed activity
       $parent_activity_id = civicrm_api3('Activity', 'getvalue', [
@@ -131,6 +126,13 @@ class CRM_Donutapp_Processor_Greenpeace_Donation extends CRM_Donutapp_Processor_
         'source_record_id' => $contract_result['membership_id'] ?? $contract_result['contribution_id'],
       ]);
       $this->processWelcomeEmail($donation, $contact_id, $parent_activity_id);
+
+      $topic_group = $donation->topic_group;
+      if (!empty($topic_group)) {
+        // TODO: topic groups are deprecated, only save engagement campaign in the future
+        $this->addGroup($contact_id, $topic_group);
+        $this->addEngagementCampaign($parent_activity_id, $topic_group);
+      }
 
       // Should we confirm retrieval?
       if ($this->params['confirm']) {

@@ -56,4 +56,15 @@ return [
     'is_contact'  => 0,
     'description' => ts('Workshifts for which customer IDs should be imported?'),
   ],
+  'donutapp_topic_campaign_map' => [
+    'name'        => 'donutapp_topic_campaign_map',
+    'type'        => 'Array',
+    'html_type'   => 'text',
+    'default'     => [],
+    'add'         => '2.7',
+    'title'       => ts('DonutApp: Mapping of topics to campaigns'),
+    'is_domain'   => 1,
+    'is_contact'  => 0,
+    'description' => ts('This maps DD topics to campaign names'),
+  ],
 ];

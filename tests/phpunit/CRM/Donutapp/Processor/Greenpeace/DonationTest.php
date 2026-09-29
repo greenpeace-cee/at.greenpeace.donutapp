@@ -152,6 +152,15 @@ class CRM_Donutapp_Processor_Greenpeace_DonationTest extends CRM_Donutapp_Proces
     $this->callAPISuccess('Group', 'create', [
       'title' => 'Wald',
     ]);
+    // set up engagement campaigns and mapping to topic groups
+    $this->callAPISuccess('Campaign', 'create', [
+      'name'                => 'Wald',
+      'title'               => 'Wälder',
+      'external_identifier' => 'ENGAGE_Wald',
+    ]);
+    Civi::settings()->set('donutapp_topic_campaign_map', [
+      'Wald' => 'Wald',
+    ]);
   }
 
   public function testContractCreation() {
@@ -258,6 +267,14 @@ class CRM_Donutapp_Processor_Greenpeace_DonationTest extends CRM_Donutapp_Proces
       $mappedContract['campaign_id'],
       'Campaign mapped via donutapp_campaign_map setting should be used'
     );
+
+    $sign_contract_activity = Api4\Activity::get(FALSE)
+      ->addSelect('engagement_campaign.engagement_campaign.name')
+      ->addWhere('activity_type_id:name', '=', 'Contract_Signed')
+      ->addWhere('target_contact_id', '=', $contact['id'])
+      ->execute()
+      ->first();
+    $this->assertEquals('Wald', $sign_contract_activity['engagement_campaign.engagement_campaign.name']);
   }
 
   public function testContractStartDate() {
@@ -441,6 +458,14 @@ class CRM_Donutapp_Processor_Greenpeace_DonationTest extends CRM_Donutapp_Proces
 
     $this->assertNotEmpty($welcome_email_activity);
     $this->assertEquals('Wie war Ihr Gespräch?', $welcome_email_activity['subject']);
+
+    $contribution_activity = Api4\Activity::get(FALSE)
+      ->addSelect('engagement_campaign.engagement_campaign.name')
+      ->addWhere('activity_type_id:name', '=', 'Contribution')
+      ->addWhere('target_contact_id', '=', $contact['id'])
+      ->execute()
+      ->first();
+    $this->assertEquals('Wald', $contribution_activity['engagement_campaign.engagement_campaign.name']);
   }
 
 }

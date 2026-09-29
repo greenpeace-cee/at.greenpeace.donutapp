@@ -1,5 +1,8 @@
 <?php
 
+use Civi\Api4\Activity;
+use Civi\Api4\Campaign;
+
 abstract class CRM_Donutapp_Processor_Greenpeace_Base extends CRM_Donutapp_Processor_Base {
 
   public function verifySetup()
@@ -260,6 +263,27 @@ abstract class CRM_Donutapp_Processor_Greenpeace_Base extends CRM_Donutapp_Proce
       'group_id' => $this->getGroupId($groupName),
       'contact_id' => $contactId,
     ]);
+  }
+
+  protected function addEngagementCampaign($parent_activity_id, $topic_group) {
+    $map = Civi::settings()->get('donutapp_topic_campaign_map') ?? [];
+    $campaign = NULL;
+    if (!empty($topic_group) && !empty($map[$topic_group])) {
+      $campaign = Campaign::get(FALSE)
+        ->addSelect('id')
+        ->addWhere('name', '=', $map[$topic_group])
+        ->execute()
+        ->first()['id'] ?? NULL;
+    }
+
+    if (empty($campaign)) {
+      throw new CRM_Donutapp_Processor_Exception("Cannot find engagement campaign for topic group '{$topic_group}'");
+    }
+
+    Activity::update(FALSE)
+      ->addValue('engagement_campaign.engagement_campaign', $campaign)
+      ->addWhere('id', '=', $parent_activity_id)
+      ->execute();
   }
 
   /**

@@ -268,13 +268,15 @@ abstract class CRM_Donutapp_Processor_Greenpeace_Base extends CRM_Donutapp_Proce
   protected function addEngagementCampaign($parent_activity_id, $topic_group) {
     $map = Civi::settings()->get('donutapp_topic_campaign_map') ?? [];
     $campaign = NULL;
+    $campaign_name = $topic_group;
     if (!empty($topic_group) && !empty($map[$topic_group])) {
-      $campaign = Campaign::get(FALSE)
-        ->addSelect('id')
-        ->addWhere('name', '=', $map[$topic_group])
-        ->execute()
-        ->first()['id'] ?? NULL;
+      $campaign_name = $map[$topic_group];
     }
+    $campaign = Campaign::get(FALSE)
+      ->addSelect('id')
+      ->addWhere('name', '=', $campaign_name)
+      ->execute()
+      ->first()['id'] ?? NULL;
 
     if (empty($campaign)) {
       throw new CRM_Donutapp_Processor_Exception("Cannot find engagement campaign for topic group '{$topic_group}'");
